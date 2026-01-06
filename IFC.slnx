@@ -1,3 +1,4 @@
 <Solution>
-  <Project Path="IFC.csproj" Id="85bbf14e-885f-4580-b34f-98d5289b2d0f" />
+  <Project Path="IFC_Update/IFC_Update.csproj" Id="89ca494a-83ac-49ac-90a6-0cac5696285e" />
+  <Project Path="IFC/IFC.csproj" Id="85bbf14e-885f-4580-b34f-98d5289b2d0f" />
 </Solution>
