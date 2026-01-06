@@ -391,6 +391,15 @@ namespace IFC
             dataGridView.Columns.Clear();
             dataGridView.Rows.Clear();
 
+            DataGridViewTextBoxColumn colIndex = new DataGridViewTextBoxColumn
+            {
+                Name = "Index",
+                HeaderText = "#",
+                Width = 40,
+                ReadOnly = true,
+                Visible = false,
+            };
+            dataGridView.Columns.Add(colIndex);
 
             // Thêm cột Data Frame
             DataGridViewComboBoxColumn cbbDataFrame = new DataGridViewComboBoxColumn
@@ -658,10 +667,11 @@ namespace IFC
             bool isUpdate = false, 
             bool isStop = false)
         {
-
+            int rowIndexOriginal = rowIndex;
             DataGridViewRow row = dgv.Rows[rowIndex];
 
             // Lấy thông tin từ row
+            string index = row.Cells["Index"].Value?.ToString() ?? "";
             string frame = row.Cells["Frame"].Value?.ToString() ?? "Standard";
             string mode = row.Cells["Mode"].Value?.ToString() ?? "Single";
             string canId = row.Cells["CANID"].Value?.ToString() ?? "";
@@ -671,6 +681,22 @@ namespace IFC
             DataGridViewButtonCell buttonCell = row.Cells["SendButton"] as DataGridViewButtonCell;
             string currentButtonText = buttonCell.Value?.ToString() ?? "▶";
 
+            // Nếu index là ID thì chuyển thành rowIndex thực
+            if (int.TryParse(index, out int rowIndexInt))
+            {
+                int rowTemp = serialManager.GetAutoTxRowIndexById(rowIndexInt);
+                rowIndexOriginal = rowTemp >=0 ? rowTemp : rowIndexOriginal;
+            }
+            else
+            {
+                // Lấy index tự động 
+                // Ghi lại giá trị index vào cell
+                var temps = serialManager.GetFirstAvailableAutoTxConfig();
+                rowIndexOriginal = temps.rowIndex;
+                row.Cells["Index"].ReadOnly = false;
+                row.Cells["Index"].Value = temps.index.ToString();
+                row.Cells["Index"].ReadOnly = true;
+            }
 
             // Validate
             if (string.IsNullOrEmpty(canId))
@@ -737,12 +763,12 @@ namespace IFC
                     if (isUpdate)
                     {
                         // Update existing
-                        success = serialManager.AutoTx_Update(rowIndex, config);
+                        success = serialManager.AutoTx_Update(rowIndexOriginal, config);
                     }
                     else
                     {
                         // Add new
-                        success = serialManager.AutoTx_Add(rowIndex, config);
+                        success = serialManager.AutoTx_Add(rowIndexOriginal, config);
                     }
 
                     if (success)
@@ -760,14 +786,14 @@ namespace IFC
                         dgv.InvalidateCell(buttonCell);
 
                         string msg = isUpdate ? "✅ Cập nhật gửi liên tục..." : "✅ Bắt đầu gửi liên tục...  ";
-                        AppendSystemLog($"[Row {rowIndex}] {msg}");
+                        AppendSystemLog($"[Row {rowIndexOriginal}] {msg}");
 
                     }
                 }
                 else if(currentButtonText == "⏹" || isStop) // currentButtonText == "⏹"
                 {
                     // Dừng gửi
-                    if (serialManager.AutoTx_Disable(rowIndex))
+                    if (serialManager.AutoTx_Disable(rowIndexOriginal))
                     {
                         buttonCell.Value = "▶";
                         row.Cells["Frame"].Style.BackColor = Color.White;
@@ -809,11 +835,18 @@ namespace IFC
             {
                 if (rowIndex < 0 || rowIndex >= dgv.Rows.Count)
                     return;
-
+                int rowIndexOriginal = rowIndex;
                 DataGridViewRow row = dgv.Rows[rowIndex];
 
                 // Lấy CAN ID
+                string index = row.Cells["Index"].Value?.ToString() ?? "";
                 string canId = row.Cells["CANID"].Value?.ToString() ?? "";
+
+                if(!int.TryParse(index, out int rowIndexInt))
+                {
+                    Debug.WriteLine($"[Row {rowIndexInt}] Invalid or empty index null");
+                    return;
+                }
 
                 // Kiểm tra CAN ID hợp lệ
                 if (string.IsNullOrWhiteSpace(canId) )
@@ -829,16 +862,14 @@ namespace IFC
                     return;
                 }
 
-                // Tìm config - Sử dụng FirstOrDefault thay vì First
-                var configs = serialManager.GetCANTransmitConfigs();
-
-                if (configs == null || !configs.Any())
+                // Tìm config
+                rowIndexOriginal = serialManager.GetAutoTxRowIndexById(rowIndexInt);
+                if (rowIndexOriginal == -1) 
                 {
-                    Debug.WriteLine($"[Row {rowIndex}] No CAN transmit configs available");
+                    Debug.WriteLine($"[Row {rowIndex}] No Auto TX config found for index {rowIndexInt}");
                     return;
                 }
-
-                var selectConfig = configs.FirstOrDefault(c => c.CANId == canIdUint);
+                var selectConfig = serialManager.GetCANTransmitAutoConfig(rowIndexOriginal);
 
                 if (selectConfig != null)
                 {
@@ -1563,7 +1594,7 @@ namespace IFC
 
                 if (result == DialogResult.Yes)
                 {
-                    /// ⭐ Gửi lệnh AUTOTX: REMOVE
+                    /// ⭐ Gửi lệnh AUTOTX:REMOVE
                     serialManager.AutoTx_Remove(rowIndex);
 
                     // Xóa row

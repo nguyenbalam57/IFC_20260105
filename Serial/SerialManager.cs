@@ -37,14 +37,24 @@ namespace IFC.Models
         public event EventHandler<AutoTxStatusEventArgs> AutoTxStatusReceived;
 
         // ⭐ Thêm Dictionary để quản lý Auto TX messages
-        private Dictionary<int, CANTransmitConfig> autoTxConfigs; // Key = Index (0-9)
+        private CANTransmitConfig[] autoTxConfigs = new CANTransmitConfig[10]; // Key = Index (0-9)
 
         public SerialManager()
         {
             serialPort = new SerialPort();
             configCANBaud = new CANBaudRateManager();
             cANTransmits = new List<CANTransmitConfig>();
-            autoTxConfigs = new Dictionary<int, CANTransmitConfig>(); // ⭐ Initialize
+
+            ClearCANTransmitConfigs();
+        }
+
+        public void ClearCANTransmitConfigs()
+        {
+            // Khởi tạo autoTxConfigs
+            for (int i = 0; i < 10; i++)
+            {
+                autoTxConfigs[i] = null;
+            }
         }
 
         /// <summary>
@@ -437,6 +447,14 @@ namespace IFC.Models
 
         #region AUTOTX Commands
 
+        public CANTransmitConfig GetCANTransmitAutoConfig(int index)
+        {
+            if (index < 0 || index > 9)
+                throw new ArgumentOutOfRangeException(nameof(index), "Index must be between 0 and 9.");
+
+            return autoTxConfigs[index];
+        }
+
         /// <summary>
         /// AUTOTX: ADD - Thêm message vào index chỉ định
         /// Format: AUTOTX:ADD:Index:Extended:ID:Interval:DLC:D0:D1:...
@@ -451,6 +469,15 @@ namespace IFC.Models
                 {
                     LogMessageReceived?.Invoke(this, $"ERR: Invalid index {index} (must be 0-9)");
                     return false;
+                }
+
+                // Xét giá trị để kiểm tra xem có bị ghi đè không
+                // Nếu có thì kích hoạt lại
+                var tempCan = autoTxConfigs[index];
+                tempCan.IsEnabled = true;
+                if (!tempCan.Equals(config))
+                {
+                    return AutoTx_Enable(index);
                 }
 
                 // Build command
@@ -515,7 +542,7 @@ namespace IFC.Models
                 LogMessageReceived?.Invoke(this, $"Sent: {sb.ToString().Trim()}");
 
                 // Cập nhật local dictionary
-                if (autoTxConfigs.ContainsKey(index))
+                if (autoTxConfigs[index].IsEnabled)
                 {
                     autoTxConfigs[index] = config;
                 }
@@ -544,9 +571,9 @@ namespace IFC.Models
                 LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
 
                 // Xóa khỏi local dictionary
-                if (autoTxConfigs.ContainsKey(index))
+                if (autoTxConfigs[index].IsEnabled)
                 {
-                    autoTxConfigs.Remove(index);
+                    autoTxConfigs[index] = null;
                 }
 
                 return true;
@@ -554,38 +581,6 @@ namespace IFC.Models
             catch (Exception ex)
             {
                 LogMessageReceived?.Invoke(this, $"ERR AutoTx_Remove: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// AUTOTX: REMOVEID - Xóa theo CAN ID
-        /// Format:  AUTOTX:REMOVEID: ID
-        /// </summary>
-        public bool AutoTx_RemoveById(uint canId)
-        {
-            try
-            {
-                if (!serialPort.IsOpen) return false;
-
-                string command = $"AUTOTX:REMOVEID:{canId: X}\n";
-                serialPort.Write(command);
-                LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
-
-                // Xóa khỏi local dictionary theo CAN ID
-                var keysToRemove = autoTxConfigs.Where(kvp => kvp.Value.CANId == canId)
-                                                .Select(kvp => kvp.Key)
-                                                .ToList();
-                foreach (var key in keysToRemove)
-                {
-                    autoTxConfigs.Remove(key);
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogMessageReceived?.Invoke(this, $"ERR AutoTx_RemoveById: {ex.Message}");
                 return false;
             }
         }
@@ -605,7 +600,7 @@ namespace IFC.Models
                 LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
 
                 // Cập nhật local config
-                if (autoTxConfigs.ContainsKey(index))
+                if (autoTxConfigs[index].IsEnabled == false)
                 {
                     autoTxConfigs[index].IsEnabled = true;
                 }
@@ -634,7 +629,7 @@ namespace IFC.Models
                 LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
 
                 // Cập nhật local config
-                if (autoTxConfigs.ContainsKey(index))
+                if (autoTxConfigs[index].IsEnabled == true)
                 {
                     autoTxConfigs[index].IsEnabled = false;
                 }
@@ -663,7 +658,7 @@ namespace IFC.Models
                 LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
 
                 // Xóa tất cả local configs
-                autoTxConfigs.Clear();
+                ClearCANTransmitConfigs();
 
                 return true;
             }
@@ -676,7 +671,7 @@ namespace IFC.Models
 
         /// <summary>
         /// AUTOTX:  STATUS - Yêu cầu status
-        /// Format: AUTOTX: STATUS
+        /// Format: AUTOTX:STATUS
         /// </summary>
         public bool AutoTx_RequestStatus()
         {
@@ -700,9 +695,43 @@ namespace IFC.Models
         /// <summary>
         /// Lấy danh sách Auto TX configs hiện tại
         /// </summary>
-        public Dictionary<int, CANTransmitConfig> GetAutoTxConfigs()
+        public CANTransmitConfig[] GetAutoTxConfigs()
         {
-            return new Dictionary<int, CANTransmitConfig>(autoTxConfigs);
+            return autoTxConfigs.ToArray();
+        }
+
+        /// <summary>
+        /// Lấy rowindex của Auto TX config theo Id
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public int GetAutoTxRowIndexById(int index)
+        {
+            for (int i = 0; i < autoTxConfigs.Length; i++)
+            {
+                if (autoTxConfigs[i] != null && autoTxConfigs[i].Id == index)
+                {
+                    return i;
+                }
+            }
+            return -1; // Không tìm thấy
+        }
+
+        /// <summary>
+        /// Lấy index và rowIndex của Auto Tx Config mà chưa sử dụng
+        /// </summary>
+        /// <returns></returns>
+        public (int index, int rowIndex) GetFirstAvailableAutoTxConfig()
+        {
+            for (int i = 0; i < autoTxConfigs.Length; i++)
+            {
+                if (autoTxConfigs[i] == null || !autoTxConfigs[i].IsEnabled)
+                {
+                    autoTxConfigs[i] = new CANTransmitConfig(); // Khởi tạo nếu chưa có
+                    return (autoTxConfigs[i].Id, i); // Trả về index và rowIndex giống nhau trong trường hợp này
+                }
+            }
+            return (-1, -1); // Không tìm thấy
         }
 
         #endregion
