@@ -53,7 +53,7 @@ namespace IFC.Models
             // Khởi tạo autoTxConfigs
             for (int i = 0; i < 10; i++)
             {
-                autoTxConfigs[i] = null;
+                autoTxConfigs[i] = new CANTransmitConfig();
             }
         }
 
@@ -475,7 +475,7 @@ namespace IFC.Models
                 // Nếu có thì kích hoạt lại
                 var tempCan = autoTxConfigs[index];
                 tempCan.IsEnabled = true;
-                if (!tempCan.Equals(config))
+                if (tempCan.Equals(config))
                 {
                     return AutoTx_Enable(index);
                 }
@@ -573,7 +573,7 @@ namespace IFC.Models
                 // Xóa khỏi local dictionary
                 if (autoTxConfigs[index].IsEnabled)
                 {
-                    autoTxConfigs[index] = null;
+                    autoTxConfigs[index] = new CANTransmitConfig();
                 }
 
                 return true;
@@ -705,33 +705,36 @@ namespace IFC.Models
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        public int GetAutoTxRowIndexById(int index)
+        public bool GetAutoTxRowIndexById(string canId, out int rowIndex, bool searchZeroId = false)
         {
-            for (int i = 0; i < autoTxConfigs.Length; i++)
-            {
-                if (autoTxConfigs[i] != null && autoTxConfigs[i].Id == index)
-                {
-                    return i;
-                }
-            }
-            return -1; // Không tìm thấy
-        }
+            rowIndex = -1;
 
-        /// <summary>
-        /// Lấy index và rowIndex của Auto Tx Config mà chưa sử dụng
-        /// </summary>
-        /// <returns></returns>
-        public (int index, int rowIndex) GetFirstAvailableAutoTxConfig()
-        {
+            if(!uint.TryParse(canId, System.Globalization.NumberStyles.HexNumber, null, out uint canIdUInt))
+            {
+                return false; // Không hợp lệ
+            }
+            uint canid = canIdUInt;
             for (int i = 0; i < autoTxConfigs.Length; i++)
             {
-                if (autoTxConfigs[i] == null || !autoTxConfigs[i].IsEnabled)
+                if (autoTxConfigs[i] != null && autoTxConfigs[i].CANId == canid)
                 {
-                    autoTxConfigs[i] = new CANTransmitConfig(); // Khởi tạo nếu chưa có
-                    return (autoTxConfigs[i].Id, i); // Trả về index và rowIndex giống nhau trong trường hợp này
+                    rowIndex = i;
+                    return true;
                 }
             }
-            return (-1, -1); // Không tìm thấy
+            // Nếu không có dữ liệu thì trả về index mà CANID = 0 gần nhất
+            if (searchZeroId)
+            {
+                for (int i = 0; i < autoTxConfigs.Length; i++)
+                {
+                    if (autoTxConfigs[i] != null && autoTxConfigs[i].CANId == 0)
+                    {
+                        rowIndex = i;
+                        return true;
+                    }
+                }
+            }
+            return false; // Không tìm thấy
         }
 
         #endregion

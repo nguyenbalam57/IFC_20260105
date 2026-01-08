@@ -57,336 +57,350 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.grpConnection = new System.Windows.Forms.GroupBox();
-            this.btnRefreshCANBaud = new System.Windows.Forms.Button();
-            this.label3 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
-            this.label1 = new System.Windows.Forms.Label();
-            this.btnSetCANBaud = new System.Windows.Forms.Button();
-            this.cmbBaudRate = new System.Windows.Forms.ComboBox();
-            this.cmbCANBaudRate = new System.Windows.Forms.ComboBox();
-            this.btnConnect = new System.Windows.Forms.Button();
-            this.btnRefreshPorts = new System.Windows.Forms.Button();
-            this.cmbPorts = new System.Windows.Forms.ComboBox();
-            this.grpTransmit = new System.Windows.Forms.GroupBox();
-            this.dtgDataBytes = new System.Windows.Forms.DataGridView();
-            this.grpReceive = new System.Windows.Forms.GroupBox();
-            this.btnClearReceive = new System.Windows.Forms.Button();
-            this.lstCANMessages = new System.Windows.Forms.ListBox();
-            this.grpLog = new System.Windows.Forms.GroupBox();
-            this.btnClearLog = new System.Windows.Forms.Button();
-            this.txtSystemLog = new System.Windows.Forms.TextBox();
-            this.lblLogStatus = new System.Windows.Forms.Label();
-            this.btnStartLog = new System.Windows.Forms.Button();
-            this.statusStrip = new System.Windows.Forms.StatusStrip();
-            this.lblRxCount = new System.Windows.Forms.ToolStripStatusLabel();
-            this.lblTxCount = new System.Windows.Forms.ToolStripStatusLabel();
-            this.grpConnection.SuspendLayout();
-            this.grpTransmit.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dtgDataBytes)).BeginInit();
-            this.grpReceive.SuspendLayout();
-            this.grpLog.SuspendLayout();
-            this.statusStrip.SuspendLayout();
-            this.SuspendLayout();
+            grpConnection = new System.Windows.Forms.GroupBox();
+            btnRefreshCANBaud = new System.Windows.Forms.Button();
+            label3 = new System.Windows.Forms.Label();
+            label2 = new System.Windows.Forms.Label();
+            label1 = new System.Windows.Forms.Label();
+            btnSetCANBaud = new System.Windows.Forms.Button();
+            cmbBaudRate = new System.Windows.Forms.ComboBox();
+            cmbCANBaudRate = new System.Windows.Forms.ComboBox();
+            btnConnect = new System.Windows.Forms.Button();
+            btnRefreshPorts = new System.Windows.Forms.Button();
+            cmbPorts = new System.Windows.Forms.ComboBox();
+            grpTransmit = new System.Windows.Forms.GroupBox();
+            dtgDataBytes = new System.Windows.Forms.DataGridView();
+            grpReceive = new System.Windows.Forms.GroupBox();
+            btnClearReceive = new System.Windows.Forms.Button();
+            lstCANMessages = new System.Windows.Forms.ListBox();
+            grpLog = new System.Windows.Forms.GroupBox();
+            btnClearLog = new System.Windows.Forms.Button();
+            txtSystemLog = new System.Windows.Forms.TextBox();
+            lblLogStatus = new System.Windows.Forms.Label();
+            btnStartLog = new System.Windows.Forms.Button();
+            statusStrip = new System.Windows.Forms.StatusStrip();
+            lblRxCount = new System.Windows.Forms.ToolStripStatusLabel();
+            lblTxCount = new System.Windows.Forms.ToolStripStatusLabel();
+            grpConnection.SuspendLayout();
+            grpTransmit.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dtgDataBytes).BeginInit();
+            grpReceive.SuspendLayout();
+            grpLog.SuspendLayout();
+            statusStrip.SuspendLayout();
+            SuspendLayout();
             // 
             // grpConnection
             // 
-            this.grpConnection.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.grpConnection.Controls.Add(this.btnRefreshCANBaud);
-            this.grpConnection.Controls.Add(this.label3);
-            this.grpConnection.Controls.Add(this.label2);
-            this.grpConnection.Controls.Add(this.label1);
-            this.grpConnection.Controls.Add(this.btnSetCANBaud);
-            this.grpConnection.Controls.Add(this.cmbBaudRate);
-            this.grpConnection.Controls.Add(this.cmbCANBaudRate);
-            this.grpConnection.Controls.Add(this.btnConnect);
-            this.grpConnection.Controls.Add(this.btnRefreshPorts);
-            this.grpConnection.Controls.Add(this.cmbPorts);
-            this.grpConnection.Location = new System.Drawing.Point(12, 12);
-            this.grpConnection.Name = "grpConnection";
-            this.grpConnection.Size = new System.Drawing.Size(1060, 63);
-            this.grpConnection.TabIndex = 0;
-            this.grpConnection.TabStop = false;
-            this.grpConnection.Text = "Kết nối UART";
+            grpConnection.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            grpConnection.Controls.Add(btnRefreshCANBaud);
+            grpConnection.Controls.Add(label3);
+            grpConnection.Controls.Add(label2);
+            grpConnection.Controls.Add(label1);
+            grpConnection.Controls.Add(btnSetCANBaud);
+            grpConnection.Controls.Add(cmbBaudRate);
+            grpConnection.Controls.Add(cmbCANBaudRate);
+            grpConnection.Controls.Add(btnConnect);
+            grpConnection.Controls.Add(btnRefreshPorts);
+            grpConnection.Controls.Add(cmbPorts);
+            grpConnection.Location = new System.Drawing.Point(14, 14);
+            grpConnection.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            grpConnection.Name = "grpConnection";
+            grpConnection.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            grpConnection.Size = new System.Drawing.Size(1236, 73);
+            grpConnection.TabIndex = 0;
+            grpConnection.TabStop = false;
+            grpConnection.Text = "Kết nối UART";
             // 
             // btnRefreshCANBaud
             // 
-            this.btnRefreshCANBaud.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnRefreshCANBaud.Location = new System.Drawing.Point(874, 19);
-            this.btnRefreshCANBaud.Name = "btnRefreshCANBaud";
-            this.btnRefreshCANBaud.Size = new System.Drawing.Size(85, 23);
-            this.btnRefreshCANBaud.TabIndex = 12;
-            this.btnRefreshCANBaud.Text = "Làm mới CAN";
-            this.btnRefreshCANBaud.UseVisualStyleBackColor = true;
-            this.btnRefreshCANBaud.Visible = false;
-            this.btnRefreshCANBaud.Click += new System.EventHandler(this.btnRefreshCANBaud_Click);
+            btnRefreshCANBaud.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            btnRefreshCANBaud.Location = new System.Drawing.Point(1019, 22);
+            btnRefreshCANBaud.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            btnRefreshCANBaud.Name = "btnRefreshCANBaud";
+            btnRefreshCANBaud.Size = new System.Drawing.Size(99, 27);
+            btnRefreshCANBaud.TabIndex = 12;
+            btnRefreshCANBaud.Text = "Làm mới CAN";
+            btnRefreshCANBaud.UseVisualStyleBackColor = true;
+            btnRefreshCANBaud.Visible = false;
+            btnRefreshCANBaud.Click += btnRefreshCANBaud_Click;
             // 
             // label3
             // 
-            this.label3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(652, 24);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(60, 13);
-            this.label3.TabIndex = 11;
-            this.label3.Text = "CAN Baud:";
-            this.label3.Visible = false;
+            label3.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            label3.AutoSize = true;
+            label3.Location = new System.Drawing.Point(760, 28);
+            label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            label3.Name = "label3";
+            label3.Size = new System.Drawing.Size(65, 15);
+            label3.TabIndex = 11;
+            label3.Text = "CAN Baud:";
+            label3.Visible = false;
             // 
             // label2
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(315, 24);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(61, 13);
-            this.label2.TabIndex = 10;
-            this.label2.Text = "Baud Rate:";
+            label2.AutoSize = true;
+            label2.Location = new System.Drawing.Point(368, 28);
+            label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            label2.Name = "label2";
+            label2.Size = new System.Drawing.Size(63, 15);
+            label2.TabIndex = 10;
+            label2.Text = "Baud Rate:";
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(6, 24);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(56, 13);
-            this.label1.TabIndex = 9;
-            this.label1.Text = "COM Port:";
+            label1.AutoSize = true;
+            label1.Location = new System.Drawing.Point(7, 28);
+            label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            label1.Name = "label1";
+            label1.Size = new System.Drawing.Size(63, 15);
+            label1.TabIndex = 9;
+            label1.Text = "COM Port:";
             // 
             // btnSetCANBaud
             // 
-            this.btnSetCANBaud.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnSetCANBaud.Location = new System.Drawing.Point(965, 19);
-            this.btnSetCANBaud.Name = "btnSetCANBaud";
-            this.btnSetCANBaud.Size = new System.Drawing.Size(85, 23);
-            this.btnSetCANBaud.TabIndex = 4;
-            this.btnSetCANBaud.Text = "Set CAN";
-            this.btnSetCANBaud.UseVisualStyleBackColor = true;
-            this.btnSetCANBaud.Visible = false;
-            this.btnSetCANBaud.Click += new System.EventHandler(this.btnSetCANBaud_Click);
+            btnSetCANBaud.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            btnSetCANBaud.Location = new System.Drawing.Point(1125, 22);
+            btnSetCANBaud.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            btnSetCANBaud.Name = "btnSetCANBaud";
+            btnSetCANBaud.Size = new System.Drawing.Size(99, 27);
+            btnSetCANBaud.TabIndex = 4;
+            btnSetCANBaud.Text = "Set CAN";
+            btnSetCANBaud.UseVisualStyleBackColor = true;
+            btnSetCANBaud.Visible = false;
+            btnSetCANBaud.Click += btnSetCANBaud_Click;
             // 
             // cmbBaudRate
             // 
-            this.cmbBaudRate.Location = new System.Drawing.Point(382, 21);
-            this.cmbBaudRate.Name = "cmbBaudRate";
-            this.cmbBaudRate.Size = new System.Drawing.Size(150, 21);
-            this.cmbBaudRate.TabIndex = 8;
+            cmbBaudRate.Location = new System.Drawing.Point(446, 24);
+            cmbBaudRate.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            cmbBaudRate.Name = "cmbBaudRate";
+            cmbBaudRate.Size = new System.Drawing.Size(174, 23);
+            cmbBaudRate.TabIndex = 8;
             // 
             // cmbCANBaudRate
             // 
-            this.cmbCANBaudRate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.cmbCANBaudRate.FormattingEnabled = true;
-            this.cmbCANBaudRate.Location = new System.Drawing.Point(718, 21);
-            this.cmbCANBaudRate.Name = "cmbCANBaudRate";
-            this.cmbCANBaudRate.Size = new System.Drawing.Size(150, 21);
-            this.cmbCANBaudRate.TabIndex = 2;
-            this.cmbCANBaudRate.Visible = false;
+            cmbCANBaudRate.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            cmbCANBaudRate.FormattingEnabled = true;
+            cmbCANBaudRate.Location = new System.Drawing.Point(837, 24);
+            cmbCANBaudRate.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            cmbCANBaudRate.Name = "cmbCANBaudRate";
+            cmbCANBaudRate.Size = new System.Drawing.Size(174, 23);
+            cmbCANBaudRate.TabIndex = 2;
+            cmbCANBaudRate.Visible = false;
             // 
             // btnConnect
             // 
-            this.btnConnect.BackColor = System.Drawing.Color.Green;
-            this.btnConnect.ForeColor = System.Drawing.Color.White;
-            this.btnConnect.Location = new System.Drawing.Point(538, 18);
-            this.btnConnect.Name = "btnConnect";
-            this.btnConnect.Size = new System.Drawing.Size(100, 25);
-            this.btnConnect.TabIndex = 5;
-            this.btnConnect.Text = "Kết nối";
-            this.btnConnect.UseVisualStyleBackColor = false;
-            this.btnConnect.Click += new System.EventHandler(this.btnConnect_Click);
+            btnConnect.BackColor = System.Drawing.Color.Green;
+            btnConnect.ForeColor = System.Drawing.Color.White;
+            btnConnect.Location = new System.Drawing.Point(628, 21);
+            btnConnect.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            btnConnect.Name = "btnConnect";
+            btnConnect.Size = new System.Drawing.Size(117, 29);
+            btnConnect.TabIndex = 5;
+            btnConnect.Text = "Kết nối";
+            btnConnect.UseVisualStyleBackColor = false;
+            btnConnect.Click += btnConnect_Click;
             // 
             // btnRefreshPorts
             // 
-            this.btnRefreshPorts.Location = new System.Drawing.Point(224, 19);
-            this.btnRefreshPorts.Name = "btnRefreshPorts";
-            this.btnRefreshPorts.Size = new System.Drawing.Size(85, 23);
-            this.btnRefreshPorts.TabIndex = 3;
-            this.btnRefreshPorts.Text = "Làm mới COM";
-            this.btnRefreshPorts.UseVisualStyleBackColor = true;
-            this.btnRefreshPorts.Click += new System.EventHandler(this.btnRefreshPorts_Click);
+            btnRefreshPorts.Location = new System.Drawing.Point(261, 22);
+            btnRefreshPorts.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            btnRefreshPorts.Name = "btnRefreshPorts";
+            btnRefreshPorts.Size = new System.Drawing.Size(99, 27);
+            btnRefreshPorts.TabIndex = 3;
+            btnRefreshPorts.Text = "Làm mới COM";
+            btnRefreshPorts.UseVisualStyleBackColor = true;
+            btnRefreshPorts.Click += btnRefreshPorts_Click;
             // 
             // cmbPorts
             // 
-            this.cmbPorts.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbPorts.FormattingEnabled = true;
-            this.cmbPorts.Location = new System.Drawing.Point(68, 21);
-            this.cmbPorts.Name = "cmbPorts";
-            this.cmbPorts.Size = new System.Drawing.Size(150, 21);
-            this.cmbPorts.TabIndex = 0;
+            cmbPorts.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            cmbPorts.FormattingEnabled = true;
+            cmbPorts.Location = new System.Drawing.Point(79, 24);
+            cmbPorts.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            cmbPorts.Name = "cmbPorts";
+            cmbPorts.Size = new System.Drawing.Size(174, 23);
+            cmbPorts.TabIndex = 0;
             // 
             // grpTransmit
             // 
-            this.grpTransmit.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.grpTransmit.Controls.Add(this.dtgDataBytes);
-            this.grpTransmit.Location = new System.Drawing.Point(12, 403);
-            this.grpTransmit.Name = "grpTransmit";
-            this.grpTransmit.Size = new System.Drawing.Size(1060, 142);
-            this.grpTransmit.TabIndex = 1;
-            this.grpTransmit.TabStop = false;
-            this.grpTransmit.Text = "Truyền CAN";
+            grpTransmit.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            grpTransmit.Controls.Add(dtgDataBytes);
+            grpTransmit.Location = new System.Drawing.Point(14, 296);
+            grpTransmit.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            grpTransmit.Name = "grpTransmit";
+            grpTransmit.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            grpTransmit.Size = new System.Drawing.Size(1236, 164);
+            grpTransmit.TabIndex = 1;
+            grpTransmit.TabStop = false;
+            grpTransmit.Text = "Truyền CAN";
             // 
             // dtgDataBytes
             // 
-            this.dtgDataBytes.AllowUserToAddRows = false;
-            this.dtgDataBytes.AllowUserToDeleteRows = false;
-            this.dtgDataBytes.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.dtgDataBytes.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.dtgDataBytes.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dtgDataBytes.EnableHeadersVisualStyles = false;
-            this.dtgDataBytes.Location = new System.Drawing.Point(6, 19);
-            this.dtgDataBytes.MultiSelect = false;
-            this.dtgDataBytes.Name = "dtgDataBytes";
-            this.dtgDataBytes.RowHeadersWidth = 20;
-            this.dtgDataBytes.Size = new System.Drawing.Size(1048, 117);
-            this.dtgDataBytes.TabIndex = 22;
+            dtgDataBytes.AllowUserToAddRows = false;
+            dtgDataBytes.AllowUserToDeleteRows = false;
+            dtgDataBytes.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            dtgDataBytes.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            dtgDataBytes.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dtgDataBytes.EnableHeadersVisualStyles = false;
+            dtgDataBytes.Location = new System.Drawing.Point(7, 22);
+            dtgDataBytes.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            dtgDataBytes.MultiSelect = false;
+            dtgDataBytes.Name = "dtgDataBytes";
+            dtgDataBytes.RowHeadersWidth = 20;
+            dtgDataBytes.Size = new System.Drawing.Size(1222, 135);
+            dtgDataBytes.TabIndex = 22;
             // 
             // grpReceive
             // 
-            this.grpReceive.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.grpReceive.Controls.Add(this.btnClearReceive);
-            this.grpReceive.Controls.Add(this.lstCANMessages);
-            this.grpReceive.Location = new System.Drawing.Point(12, 81);
-            this.grpReceive.Name = "grpReceive";
-            this.grpReceive.Size = new System.Drawing.Size(1060, 316);
-            this.grpReceive.TabIndex = 2;
-            this.grpReceive.TabStop = false;
-            this.grpReceive.Text = "Nhận CAN";
+            grpReceive.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            grpReceive.Controls.Add(btnClearReceive);
+            grpReceive.Controls.Add(lstCANMessages);
+            grpReceive.Location = new System.Drawing.Point(14, 93);
+            grpReceive.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            grpReceive.Name = "grpReceive";
+            grpReceive.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            grpReceive.Size = new System.Drawing.Size(1236, 196);
+            grpReceive.TabIndex = 2;
+            grpReceive.TabStop = false;
+            grpReceive.Text = "Nhận CAN";
             // 
             // btnClearReceive
             // 
-            this.btnClearReceive.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.btnClearReceive.Location = new System.Drawing.Point(9, 282);
-            this.btnClearReceive.Name = "btnClearReceive";
-            this.btnClearReceive.Size = new System.Drawing.Size(100, 25);
-            this.btnClearReceive.TabIndex = 1;
-            this.btnClearReceive.Text = "Xóa";
-            this.btnClearReceive.UseVisualStyleBackColor = true;
-            this.btnClearReceive.Click += new System.EventHandler(this.btnClearReceive_Click);
+            btnClearReceive.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            btnClearReceive.Location = new System.Drawing.Point(10, 156);
+            btnClearReceive.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            btnClearReceive.Name = "btnClearReceive";
+            btnClearReceive.Size = new System.Drawing.Size(117, 29);
+            btnClearReceive.TabIndex = 1;
+            btnClearReceive.Text = "Xóa";
+            btnClearReceive.UseVisualStyleBackColor = true;
+            btnClearReceive.Click += btnClearReceive_Click;
             // 
             // lstCANMessages
             // 
-            this.lstCANMessages.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.lstCANMessages.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lstCANMessages.FormattingEnabled = true;
-            this.lstCANMessages.ItemHeight = 14;
-            this.lstCANMessages.Location = new System.Drawing.Point(10, 22);
-            this.lstCANMessages.Name = "lstCANMessages";
-            this.lstCANMessages.Size = new System.Drawing.Size(1040, 242);
-            this.lstCANMessages.TabIndex = 0;
+            lstCANMessages.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            lstCANMessages.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0);
+            lstCANMessages.FormattingEnabled = true;
+            lstCANMessages.ItemHeight = 14;
+            lstCANMessages.Location = new System.Drawing.Point(12, 25);
+            lstCANMessages.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            lstCANMessages.Name = "lstCANMessages";
+            lstCANMessages.Size = new System.Drawing.Size(1212, 88);
+            lstCANMessages.TabIndex = 0;
             // 
             // grpLog
             // 
-            this.grpLog.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.grpLog.Controls.Add(this.btnClearLog);
-            this.grpLog.Controls.Add(this.txtSystemLog);
-            this.grpLog.Controls.Add(this.lblLogStatus);
-            this.grpLog.Controls.Add(this.btnStartLog);
-            this.grpLog.Location = new System.Drawing.Point(12, 551);
-            this.grpLog.Name = "grpLog";
-            this.grpLog.Size = new System.Drawing.Size(1060, 230);
-            this.grpLog.TabIndex = 3;
-            this.grpLog.TabStop = false;
-            this.grpLog.Text = "System Log";
+            grpLog.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            grpLog.Controls.Add(btnClearLog);
+            grpLog.Controls.Add(txtSystemLog);
+            grpLog.Controls.Add(lblLogStatus);
+            grpLog.Controls.Add(btnStartLog);
+            grpLog.Location = new System.Drawing.Point(14, 467);
+            grpLog.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            grpLog.Name = "grpLog";
+            grpLog.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            grpLog.Size = new System.Drawing.Size(1236, 265);
+            grpLog.TabIndex = 3;
+            grpLog.TabStop = false;
+            grpLog.Text = "System Log";
             // 
             // btnClearLog
             // 
-            this.btnClearLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.btnClearLog.Location = new System.Drawing.Point(10, 196);
-            this.btnClearLog.Name = "btnClearLog";
-            this.btnClearLog.Size = new System.Drawing.Size(100, 25);
-            this.btnClearLog.TabIndex = 3;
-            this.btnClearLog.Text = "Xóa Log";
-            this.btnClearLog.UseVisualStyleBackColor = true;
-            this.btnClearLog.Click += new System.EventHandler(this.btnClearLog_Click);
+            btnClearLog.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            btnClearLog.Location = new System.Drawing.Point(12, 226);
+            btnClearLog.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            btnClearLog.Name = "btnClearLog";
+            btnClearLog.Size = new System.Drawing.Size(117, 29);
+            btnClearLog.TabIndex = 3;
+            btnClearLog.Text = "Xóa Log";
+            btnClearLog.UseVisualStyleBackColor = true;
+            btnClearLog.Click += btnClearLog_Click;
             // 
             // txtSystemLog
             // 
-            this.txtSystemLog.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtSystemLog.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtSystemLog.Location = new System.Drawing.Point(10, 55);
-            this.txtSystemLog.Multiline = true;
-            this.txtSystemLog.Name = "txtSystemLog";
-            this.txtSystemLog.ReadOnly = true;
-            this.txtSystemLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtSystemLog.Size = new System.Drawing.Size(1040, 135);
-            this.txtSystemLog.TabIndex = 2;
+            txtSystemLog.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            txtSystemLog.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0);
+            txtSystemLog.Location = new System.Drawing.Point(12, 63);
+            txtSystemLog.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            txtSystemLog.Multiline = true;
+            txtSystemLog.Name = "txtSystemLog";
+            txtSystemLog.ReadOnly = true;
+            txtSystemLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            txtSystemLog.Size = new System.Drawing.Size(1212, 155);
+            txtSystemLog.TabIndex = 2;
             // 
             // lblLogStatus
             // 
-            this.lblLogStatus.AutoSize = true;
-            this.lblLogStatus.ForeColor = System.Drawing.Color.Gray;
-            this.lblLogStatus.Location = new System.Drawing.Point(140, 27);
-            this.lblLogStatus.Name = "lblLogStatus";
-            this.lblLogStatus.Size = new System.Drawing.Size(72, 13);
-            this.lblLogStatus.TabIndex = 1;
-            this.lblLogStatus.Text = "Không ghi log";
+            lblLogStatus.AutoSize = true;
+            lblLogStatus.ForeColor = System.Drawing.Color.Gray;
+            lblLogStatus.Location = new System.Drawing.Point(163, 31);
+            lblLogStatus.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            lblLogStatus.Name = "lblLogStatus";
+            lblLogStatus.Size = new System.Drawing.Size(82, 15);
+            lblLogStatus.TabIndex = 1;
+            lblLogStatus.Text = "Không ghi log";
             // 
             // btnStartLog
             // 
-            this.btnStartLog.Location = new System.Drawing.Point(10, 22);
-            this.btnStartLog.Name = "btnStartLog";
-            this.btnStartLog.Size = new System.Drawing.Size(120, 25);
-            this.btnStartLog.TabIndex = 0;
-            this.btnStartLog.Text = "Bắt đầu Log";
-            this.btnStartLog.UseVisualStyleBackColor = true;
-            this.btnStartLog.Click += new System.EventHandler(this.btnStartLog_Click);
+            btnStartLog.Location = new System.Drawing.Point(12, 25);
+            btnStartLog.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            btnStartLog.Name = "btnStartLog";
+            btnStartLog.Size = new System.Drawing.Size(140, 29);
+            btnStartLog.TabIndex = 0;
+            btnStartLog.Text = "Bắt đầu Log";
+            btnStartLog.UseVisualStyleBackColor = true;
+            btnStartLog.Click += btnStartLog_Click;
             // 
             // statusStrip
             // 
-            this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.lblRxCount,
-            this.lblTxCount});
-            this.statusStrip.Location = new System.Drawing.Point(0, 784);
-            this.statusStrip.Name = "statusStrip";
-            this.statusStrip.Size = new System.Drawing.Size(1084, 22);
-            this.statusStrip.TabIndex = 4;
-            this.statusStrip.Text = "statusStrip1";
+            statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { lblRxCount, lblTxCount });
+            statusStrip.Location = new System.Drawing.Point(0, 739);
+            statusStrip.Name = "statusStrip";
+            statusStrip.Padding = new System.Windows.Forms.Padding(1, 0, 16, 0);
+            statusStrip.Size = new System.Drawing.Size(1264, 22);
+            statusStrip.TabIndex = 4;
+            statusStrip.Text = "statusStrip1";
             // 
             // lblRxCount
             // 
-            this.lblRxCount.Name = "lblRxCount";
-            this.lblRxCount.Size = new System.Drawing.Size(33, 17);
-            this.lblRxCount.Text = "RX: 0";
+            lblRxCount.Name = "lblRxCount";
+            lblRxCount.Size = new System.Drawing.Size(33, 17);
+            lblRxCount.Text = "RX: 0";
             // 
             // lblTxCount
             // 
-            this.lblTxCount.Name = "lblTxCount";
-            this.lblTxCount.Size = new System.Drawing.Size(33, 17);
-            this.lblTxCount.Text = "TX: 0";
+            lblTxCount.Name = "lblTxCount";
+            lblTxCount.Size = new System.Drawing.Size(33, 17);
+            lblTxCount.Text = "TX: 0";
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1084, 806);
-            this.Controls.Add(this.statusStrip);
-            this.Controls.Add(this.grpLog);
-            this.Controls.Add(this.grpReceive);
-            this.Controls.Add(this.grpTransmit);
-            this.Controls.Add(this.grpConnection);
-            this.MinimumSize = new System.Drawing.Size(1100, 800);
-            this.Name = "Form1";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "STM32 CAN Monitor - UART Interface";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
-            this.grpConnection.ResumeLayout(false);
-            this.grpConnection.PerformLayout();
-            this.grpTransmit.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dtgDataBytes)).EndInit();
-            this.grpReceive.ResumeLayout(false);
-            this.grpLog.ResumeLayout(false);
-            this.grpLog.PerformLayout();
-            this.statusStrip.ResumeLayout(false);
-            this.statusStrip.PerformLayout();
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            ClientSize = new System.Drawing.Size(1264, 761);
+            Controls.Add(statusStrip);
+            Controls.Add(grpLog);
+            Controls.Add(grpReceive);
+            Controls.Add(grpTransmit);
+            Controls.Add(grpConnection);
+            Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            MinimumSize = new System.Drawing.Size(1280, 800);
+            Name = "Form1";
+            StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            Text = "STM32 CAN Monitor - UART Interface";
+            FormClosing += MainForm_FormClosing;
+            grpConnection.ResumeLayout(false);
+            grpConnection.PerformLayout();
+            grpTransmit.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dtgDataBytes).EndInit();
+            grpReceive.ResumeLayout(false);
+            grpLog.ResumeLayout(false);
+            grpLog.PerformLayout();
+            statusStrip.ResumeLayout(false);
+            statusStrip.PerformLayout();
+            ResumeLayout(false);
+            PerformLayout();
 
         }
 

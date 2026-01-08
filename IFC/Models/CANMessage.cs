@@ -42,8 +42,6 @@ namespace IFC.Models
 
     public class CANTransmitConfig
     {
-        // Thêm ID duy nhất
-        public int Id { get; set; }
 
         public uint CANId { get; set; }
         public byte[] Data { get; set; }
@@ -52,11 +50,8 @@ namespace IFC.Models
         public bool IsEnabled { get; set; }
         public bool IsExtended { get; set; }
 
-        private static int _nextId = 0;
-
         public CANTransmitConfig()
         {
-            Id = _nextId++;
             CANId = 0x000;
             Data = new byte[8];
             DLC = 8;

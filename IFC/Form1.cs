@@ -391,16 +391,6 @@ namespace IFC
             dataGridView.Columns.Clear();
             dataGridView.Rows.Clear();
 
-            DataGridViewTextBoxColumn colIndex = new DataGridViewTextBoxColumn
-            {
-                Name = "Index",
-                HeaderText = "#",
-                Width = 40,
-                ReadOnly = true,
-                Visible = false,
-            };
-            dataGridView.Columns.Add(colIndex);
-
             // Thêm cột Data Frame
             DataGridViewComboBoxColumn cbbDataFrame = new DataGridViewComboBoxColumn
             {
@@ -520,18 +510,23 @@ namespace IFC
                 // Xử lý thay đổi Mode
                 HandleModeChanged(dgv, e.RowIndex);
             }
+            else if(columnName == "CANID")
+            {
+                // Check CAN có duplicate không
+                CheckDuplicateCANID(dgv, e.RowIndex);
+            }
             else if (columnName == "DLC")
             {
                 // Cập nhật Data columns
                 UpdateDataColumns(dgv);
             }
-            else if(columnName == "Interval")
+            else if (columnName == "Interval")
             {
                 // Xử lý thay đổi data
                 HandleDataChanged(dgv, e.RowIndex);
 
             }
-            else if(columnName.StartsWith("Data") )
+            else if (columnName.StartsWith("Data"))
             {
                 // Xử lý thay đổi data0
                 HandleDataChanged(dgv, e.RowIndex);
@@ -667,11 +662,9 @@ namespace IFC
             bool isUpdate = false, 
             bool isStop = false)
         {
-            int rowIndexOriginal = rowIndex;
             DataGridViewRow row = dgv.Rows[rowIndex];
 
             // Lấy thông tin từ row
-            string index = row.Cells["Index"].Value?.ToString() ?? "";
             string frame = row.Cells["Frame"].Value?.ToString() ?? "Standard";
             string mode = row.Cells["Mode"].Value?.ToString() ?? "Single";
             string canId = row.Cells["CANID"].Value?.ToString() ?? "";
@@ -681,27 +674,16 @@ namespace IFC
             DataGridViewButtonCell buttonCell = row.Cells["SendButton"] as DataGridViewButtonCell;
             string currentButtonText = buttonCell.Value?.ToString() ?? "▶";
 
-            // Nếu index là ID thì chuyển thành rowIndex thực
-            if (int.TryParse(index, out int rowIndexInt))
-            {
-                int rowTemp = serialManager.GetAutoTxRowIndexById(rowIndexInt);
-                rowIndexOriginal = rowTemp >=0 ? rowTemp : rowIndexOriginal;
-            }
-            else
-            {
-                // Lấy index tự động 
-                // Ghi lại giá trị index vào cell
-                var temps = serialManager.GetFirstAvailableAutoTxConfig();
-                rowIndexOriginal = temps.rowIndex;
-                row.Cells["Index"].ReadOnly = false;
-                row.Cells["Index"].Value = temps.index.ToString();
-                row.Cells["Index"].ReadOnly = true;
-            }
-
             // Validate
             if (string.IsNullOrEmpty(canId))
             {
                 MessageBox.Show("Vui lòng nhập CAN ID!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if(!serialManager.GetAutoTxRowIndexById(canId, out int rowIndexOriginal, true))
+            {
+                MessageBox.Show("CAN ID không hợp lệ!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -747,7 +729,6 @@ namespace IFC
                 IntervalMs = intervalInt,
                 IsExtended = isExtended
             };
-
 
             // ⭐ Sử dụng AUTOTX commands
             if ((mode == "Multi" && config.IntervalMs > 0 ))
@@ -824,6 +805,37 @@ namespace IFC
 #endif
         }
 
+        // Kiểm tra CANID khi data thay đổi, có bị trùng không, nếu có thì bắt buộc nhập lại CANID
+        private void CheckDuplicateCANID(DataGridView dgv, int rowIndex)
+        {
+            try
+            {
+                if (rowIndex < 0 || rowIndex >= dgv.Rows.Count)
+                    return;
+
+                DataGridViewRow row = dgv.Rows[rowIndex];
+                string canId = row.Cells["CANID"].Value?.ToString() ?? "";
+
+                if (string.IsNullOrWhiteSpace(canId))
+                    return;
+
+                // Kiểm tra trùng lặp
+                for (int i = 0; i < dgv.Rows.Count; i++)
+                {
+                    if (i != rowIndex && dgv.Rows[i].Cells["CANID"].Value?.ToString() == canId)
+                    {
+                        MessageBox.Show($"CAN ID {canId} đã tồn tại!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        row.Cells["CANID"].Value = ""; // Yêu cầu nhập lại
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Row {rowIndex}] Error in CheckDuplicateCANID: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Cập nhật khi data thay đổi
         /// </summary>
@@ -839,12 +851,11 @@ namespace IFC
                 DataGridViewRow row = dgv.Rows[rowIndex];
 
                 // Lấy CAN ID
-                string index = row.Cells["Index"].Value?.ToString() ?? "";
                 string canId = row.Cells["CANID"].Value?.ToString() ?? "";
 
-                if(!int.TryParse(index, out int rowIndexInt))
+                if(!uint.TryParse(canId, out uint uintCanId))
                 {
-                    Debug.WriteLine($"[Row {rowIndexInt}] Invalid or empty index null");
+                    Debug.WriteLine($"[Row {rowIndex}] Invalid or empty CAN ID");
                     return;
                 }
 
@@ -863,12 +874,12 @@ namespace IFC
                 }
 
                 // Tìm config
-                rowIndexOriginal = serialManager.GetAutoTxRowIndexById(rowIndexInt);
-                if (rowIndexOriginal == -1) 
+                if (!serialManager.GetAutoTxRowIndexById(canId, out rowIndexOriginal))
                 {
-                    Debug.WriteLine($"[Row {rowIndex}] No Auto TX config found for index {rowIndexInt}");
+                    Debug.WriteLine($"[Row {rowIndex}] No Auto TX config found for index {canId}");
                     return;
                 }
+
                 var selectConfig = serialManager.GetCANTransmitAutoConfig(rowIndexOriginal);
 
                 if (selectConfig != null)
