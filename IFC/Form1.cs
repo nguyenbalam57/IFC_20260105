@@ -36,6 +36,10 @@ namespace IFC
 
         private const int MAX_ROWS = 10;
 
+        // Thêm Dictionary để track vị trí của mỗi CAN ID trong ListBox
+        private Dictionary<uint, int> canIdListBoxIndexMap = new Dictionary<uint, int>();
+        private bool isDisplayData = false;
+
 
         public Form1()
         {
@@ -86,6 +90,51 @@ namespace IFC
             RefreshCANBaud();
 
             UpdateConnectionStatus(false);
+
+            // ⭐ Enable custom drawing cho ListBox (optional)
+            InitializeListBoxDrawing();
+        }
+
+        /// <summary>
+        /// Khởi tạo custom drawing cho ListBox để hiển thị màu Rx/Tx
+        /// </summary>
+        private void InitializeListBoxDrawing()
+        {
+            lstCANMessages.DrawMode = DrawMode.OwnerDrawFixed;
+            lstCANMessages.DrawItem += LstCANMessages_DrawItem;
+            updateDisplayButtonData();
+        }
+
+        /// <summary>
+        /// Custom draw ListBox items với màu sắc cho Rx/Tx
+        /// </summary>
+        private void LstCANMessages_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            if (e.Index < 0) return;
+
+            e.DrawBackground();
+
+            string text = lstCANMessages.Items[e.Index].ToString();
+            Color textColor = Color.Black;
+            Font textFont = e.Font;
+
+            // Xác định màu dựa trên prefix
+            if (text.Contains("[Rx]"))
+            {
+                textColor = Color.Green; // Rx = Màu xanh
+            }
+            else if (text.Contains("[Tx]"))
+            {
+                textColor = Color.Blue; // Tx = Màu xanh dương
+            }
+
+            // Vẽ text với màu tương ứng
+            using (Brush textBrush = new SolidBrush(textColor))
+            {
+                e.Graphics.DrawString(text, textFont, textBrush, e.Bounds);
+            }
+
+            e.DrawFocusRectangle();
         }
 
         // ===== Event Handlers =====
@@ -276,8 +325,30 @@ namespace IFC
         private void btnClearReceive_Click(object sender, EventArgs e)
         {
             lstCANMessages.Items.Clear();
+            canIdListBoxIndexMap.Clear(); // ⭐ Clear map khi clear ListBox
             receivedCount = 0;
+            transmittedCount = 0; // ⭐ Reset cả Tx counter
             UpdateStatistics();
+        }
+
+        private void btnData_Click(object sender, EventArgs e)
+        {
+            isDisplayData = !isDisplayData;
+
+            updateDisplayButtonData();
+
+            // Clear ListBox và map khi chuyển mode
+            lstCANMessages.Items.Clear();
+            canIdListBoxIndexMap.Clear();
+
+            AppendSystemLog($"Chuyển sang chế độ hiển thị: {(isDisplayData ? "Cập nhật theo CAN ID" : "Danh sách tách biệt")}");
+        }
+
+        private void updateDisplayButtonData()
+        {
+            // Cập nhật text button để hiển thị trạng thái
+            btnData.Text = isDisplayData ? "Mode: Update" : "Mode: List";
+            btnData.BackColor = isDisplayData ? Color.LightBlue : SystemColors.Control;
         }
 
         private void btnClearLog_Click(object sender, EventArgs e)
@@ -299,20 +370,93 @@ namespace IFC
 
         private void ProcessCANMessage(CANMessage message)
         {
-            // Hiển thị trong ListBox
-            string displayText = $"[{message.Timestamp:HH:mm:ss.fff}] {message}";
-            lstCANMessages.Items.Insert(0, displayText);
 
-            // Giới hạn số dòng hiển thị
-            if (lstCANMessages.Items.Count > 1000)
-                lstCANMessages.Items.RemoveAt(lstCANMessages.Items.Count - 1);
+            // Xử lý thông điệp CAN
+            if(serialManager.GetAutoTxRowIndexById($"{message.CANId:X}", out int existingIndex))
+            {
+                message.IsRxTx = false; // Đánh dấu là Tx
+            }
+            else
+            {
+                message.IsRxTx = true; // Đánh dấu là Rx
+            }
+
+            // Tạo prefix Rx/Tx với màu sắc
+            string rxTxPrefix = message.IsRxTx ? "[Rx]" : "[Tx]";
+            string displayText = $"[{message.Timestamp:HH:mm:ss.fff}] {rxTxPrefix} {message}";
+
+            if (isDisplayData)
+            {
+                // ⭐ Mode: Cập nhật cùng 1 dòng cho mỗi CAN ID
+                UpdateOrAddCANMessageInListBox(message, displayText);
+            }
+            else
+            {
+                // ⭐ Mode: Hiển thị danh sách tách biệt (như cũ)
+                lstCANMessages.Items.Insert(0, displayText);
+
+                // Giới hạn số dòng hiển thị
+                if (lstCANMessages.Items.Count > 1000)
+                    lstCANMessages.Items.RemoveAt(lstCANMessages.Items.Count - 1);
+            }
 
             // Ghi log
             if (logManager.IsLogging)
                 logManager.LogCANMessage(message);
 
-            receivedCount++;
+            // Cập nhật counter
+            if (message.IsRxTx)
+                receivedCount++;
+            else
+                transmittedCount++;
+
             UpdateStatistics();
+        }
+
+        /// <summary>
+        /// Cập nhật hoặc thêm CAN message vào ListBox (1 dòng cho mỗi CAN ID)
+        /// </summary>
+        private void UpdateOrAddCANMessageInListBox(CANMessage message, string displayText)
+        {
+            try
+            {
+                uint canId = message.CANId;
+
+                // Kiểm tra CAN ID đã tồn tại trong map chưa
+                if (canIdListBoxIndexMap.ContainsKey(canId))
+                {
+                    int existingIndex = canIdListBoxIndexMap[canId];
+
+                    // Kiểm tra index còn hợp lệ không
+                    if (existingIndex >= 0 && existingIndex < lstCANMessages.Items.Count)
+                    {
+                        // Cập nhật dòng hiện tại
+                        lstCANMessages.Items[existingIndex] = displayText;
+
+                        // Highlight dòng vừa cập nhật (optional)
+                        lstCANMessages.SelectedIndex = existingIndex;
+                    }
+                    else
+                    {
+                        // Index không hợp lệ - Thêm mới và cập nhật map
+                        int newIndex = lstCANMessages.Items.Add(displayText);
+                        canIdListBoxIndexMap[canId] = newIndex;
+                    }
+                }
+                else
+                {
+                    // CAN ID chưa tồn tại - Thêm mới
+                    int newIndex = lstCANMessages.Items.Add(displayText);
+                    canIdListBoxIndexMap[canId] = newIndex;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating ListBox: {ex.Message}");
+
+                // Fallback: Thêm mới nếu có lỗi
+                lstCANMessages.Items.Insert(0, displayText);
+            }
         }
 
         private void OnLogMessageReceived(object sender, string message)
@@ -380,7 +524,8 @@ namespace IFC
             logManager?.StopLogging();
             serialManager?.Disconnect();
 
-            StopAllTimers(dtgDataBytes);
+            // ⭐ Gửi lệnh AUTOTX:CLEAR
+            serialManager.AutoTx_Clear();
         }
 
 
@@ -510,7 +655,7 @@ namespace IFC
                 // Xử lý thay đổi Mode
                 HandleModeChanged(dgv, e.RowIndex);
             }
-            else if(columnName == "CANID")
+            else if (columnName == "CANID")
             {
                 // Check CAN có duplicate không
                 CheckDuplicateCANID(dgv, e.RowIndex);
@@ -530,7 +675,7 @@ namespace IFC
             {
                 // Xử lý thay đổi data0
                 HandleDataChanged(dgv, e.RowIndex);
-            }    
+            }
         }
 
         /// <summary>
@@ -657,9 +802,9 @@ namespace IFC
         /// Xử lý khi click Send button
         /// </summary>
         private void HandleSendButtonClick(
-            DataGridView dgv, 
-            int rowIndex, 
-            bool isUpdate = false, 
+            DataGridView dgv,
+            int rowIndex,
+            bool isUpdate = false,
             bool isStop = false)
         {
             DataGridViewRow row = dgv.Rows[rowIndex];
@@ -670,7 +815,7 @@ namespace IFC
             string canId = row.Cells["CANID"].Value?.ToString() ?? "";
             string dlcStr = row.Cells["DLC"].Value?.ToString() ?? "0";
             string interval = row.Cells["Interval"].Value?.ToString() ?? "10";
-            
+
             DataGridViewButtonCell buttonCell = row.Cells["SendButton"] as DataGridViewButtonCell;
             string currentButtonText = buttonCell.Value?.ToString() ?? "▶";
 
@@ -681,7 +826,7 @@ namespace IFC
                 return;
             }
 
-            if(!serialManager.GetAutoTxRowIndexById(canId, out int rowIndexOriginal, true))
+            if (!serialManager.GetAutoTxRowIndexById(canId, out int rowIndexOriginal, true))
             {
                 MessageBox.Show("CAN ID không hợp lệ!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -727,11 +872,12 @@ namespace IFC
                 Data = dataBytes,
                 DLC = dlc,
                 IntervalMs = intervalInt,
-                IsExtended = isExtended
+                IsExtended = isExtended,
+
             };
 
             // ⭐ Sử dụng AUTOTX commands
-            if ((mode == "Multi" && config.IntervalMs > 0 ))
+            if ((mode == "Multi" && config.IntervalMs > 0))
             {
                 if (currentButtonText == "▶" || isUpdate)
                 {
@@ -771,7 +917,7 @@ namespace IFC
 
                     }
                 }
-                else if(currentButtonText == "⏹" || isStop) // currentButtonText == "⏹"
+                else if (currentButtonText == "⏹" || isStop) // currentButtonText == "⏹"
                 {
                     // Dừng gửi
                     if (serialManager.AutoTx_Disable(rowIndexOriginal))
@@ -787,7 +933,7 @@ namespace IFC
                         row.Cells["DLC"].ReadOnly = false;
                         dgv.InvalidateCell(buttonCell);
                         AppendSystemLog($"[Row {rowIndex}] ⏹ Đã dừng gửi");
-                    }    
+                    }
                 }
             }
             else // Single
@@ -853,14 +999,14 @@ namespace IFC
                 // Lấy CAN ID
                 string canId = row.Cells["CANID"].Value?.ToString() ?? "";
 
-                if(!uint.TryParse(canId, out uint uintCanId))
+                if (!uint.TryParse(canId, out uint uintCanId))
                 {
                     Debug.WriteLine($"[Row {rowIndex}] Invalid or empty CAN ID");
                     return;
                 }
 
                 // Kiểm tra CAN ID hợp lệ
-                if (string.IsNullOrWhiteSpace(canId) )
+                if (string.IsNullOrWhiteSpace(canId))
                 {
                     Debug.WriteLine($"[Row {rowIndex}] Invalid or empty CAN ID");
                     return;
@@ -1495,7 +1641,7 @@ namespace IFC
                     dataGridView.EndEdit();
                 }
 
-                if(dataGridView.Rows.Count >= MAX_ROWS)
+                if (dataGridView.Rows.Count >= MAX_ROWS)
                 {
                     MessageBox.Show($"Không thể thêm row mới.  Đã đạt giới hạn tối đa {MAX_ROWS} rows.",
                                     "Limit Reached", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -1675,64 +1821,12 @@ namespace IFC
             }
         }
 
-
-        /// <summary>
-        /// Dừng tất cả timers
-        /// </summary>
-        private void StopAllTimers(DataGridView dgv)
-        {
-            if(dgv == null)
-                return;
-
-            foreach (DataGridViewRow indexRow in dgv.Rows)
-            {
-                StopContinuousSend(dgv, indexRow.Index, Convert.ToUInt32(dgv.Rows[indexRow.Index].Cells["CANId"]?.Value.ToString(),16));
-            }
-
-            //rowSendInfos.Clear();
-            Debug.WriteLine("Stopped all timers");
-        }
-
-        /// <summary>
-        /// Dừng timer cho một row cụ thể
-        /// </summary>
-        private void StopContinuousSend(DataGridView dgv, int rowIndex, uint canId)
-        {
-            try
-            {
-                // Tìm config - Sử dụng FirstOrDefault thay vì First
-                var configs = serialManager.GetCANTransmitConfigs();
-
-                if (configs == null || !configs.Any())
-                {
-                    Debug.WriteLine($"[Stop {canId}] No CAN transmit configs available");
-                    return;
-                }
-
-                var selectConfig = configs.FirstOrDefault(c => c.CANId == canId);
-
-                if(selectConfig != null)
-                    HandleSendButtonClick(dgv, rowIndex, isStop: true);
-
-                // Xóa cấu hình
-                serialManager.UpdateCANTransmitConfigs(selectConfig, isDelete: true);
-
-
-            }
-            catch(Exception ex)
-            {
-
-            }
-        }
-
-
         #endregion
 
 
 
         #endregion
 
-
-
+        
     }
 }

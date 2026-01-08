@@ -19,6 +19,8 @@ namespace IFC.Models
         public bool IsExtended { get; set; }
         public bool IsRemote { get; set; }
 
+        public bool IsRxTx { get; set; } // True = Rx, False = Tx
+
         public CANMessage()
         {
             Timestamp = DateTime.Now;
@@ -29,7 +31,8 @@ namespace IFC.Models
         {
             string dataHex = BitConverter.ToString(Data, 0, DLC).Replace("-", " ");
             string canIdString = IsExtended ? $"0x{CANId:X8}" : $"0x{CANId:X3}";
-            return $"{Timestamp:yyyy-MM-dd HH:mm:ss.fff},{canIdString},{DLC},{dataHex}";
+            string rxTxString = IsRxTx ? "RX" : "TX";
+            return $"{Timestamp:yyyy-MM-dd HH:mm:ss.fff},{rxTxString},{canIdString},{DLC},{dataHex}";
         }
 
         public override string ToString()
@@ -120,6 +123,7 @@ namespace IFC.Models
                 return hash;
             }
         }
+
     }
 
 

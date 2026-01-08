@@ -31,8 +31,6 @@ namespace IFC.Models
 
         private CANBaudRateManager configCANBaud;
 
-        public List<CANTransmitConfig> cANTransmits;
-
         // ⭐ Thêm event mới cho AUTOTX Status
         public event EventHandler<AutoTxStatusEventArgs> AutoTxStatusReceived;
 
@@ -43,7 +41,6 @@ namespace IFC.Models
         {
             serialPort = new SerialPort();
             configCANBaud = new CANBaudRateManager();
-            cANTransmits = new List<CANTransmitConfig>();
 
             ClearCANTransmitConfigs();
         }
@@ -314,11 +311,6 @@ namespace IFC.Models
 
         #region Gửi dữ liệu qua Serial Port
 
-        public List<CANTransmitConfig> GetCANTransmitConfigs()
-        {
-            return cANTransmits.Count > 0 ? cANTransmits.ToList() : new List<CANTransmitConfig>();
-        }
-
         /// <summary>
         /// gửi tin nhắn CAN theo cấu hình
         /// </summary>
@@ -332,8 +324,11 @@ namespace IFC.Models
                     return false;
 
 
-                UpdateCANTransmitConfigs(config);
-
+                if(GetAutoTxRowIndexById($"{config.CANId:X}", out int existingIndex, true))
+                {
+                    autoTxConfigs[existingIndex] = config;
+                }
+                
                 // Protocol: "TX:Enable:Interver:Extended:ID:DLC:D0:D1:D2:D3:D4:D5:D6:D7\n"
                 // Enable: 1 or 0. 1 là bật gửi định kỳ, 0 là tắt
                 // Interver: khoảng thời gian gửi (ms)
@@ -359,41 +354,6 @@ namespace IFC.Models
             {
                 LogMessageReceived?.Invoke(this, $"Lỗi gửi CAN: {ex.Message}");
                 return false;
-            }
-        }
-
-        /// <summary>
-        /// cập nhật dữ liệu ghi vào cấu hình gửi CAN
-        /// </summary>
-        /// <param name="configs"></param>
-        /// <param name="isDelete"></param>
-        public void UpdateCANTransmitConfigs(CANTransmitConfig configs, bool isDelete = false)
-        {
-            if (configs == null)
-                return;
-
-            // check xem tồn tại chưa, nếu chưa thì ghi vào
-            if (!cANTransmits.Any(c => c.CANId == configs.CANId))
-            {
-                cANTransmits.Add(configs);
-            }
-            else
-            {
-
-                if (isDelete)
-                {
-                    // Xóa cấu hình
-                    var existingConfigDelete = cANTransmits.First(c => c.CANId == configs.CANId);
-                    cANTransmits.Remove(existingConfigDelete);
-                    return;
-                }
-                // Cập nhật cấu hình
-                var existingConfig = cANTransmits.First(c => c.CANId == configs.CANId);
-                existingConfig.Data = configs.Data;
-                existingConfig.DLC = configs.DLC;
-                existingConfig.IntervalMs = configs.IntervalMs;
-                existingConfig.IsEnabled = configs.IsEnabled;
-                existingConfig.IsExtended = configs.IsExtended;
             }
         }
 
@@ -653,7 +613,7 @@ namespace IFC.Models
             {
                 if (!serialPort.IsOpen) return false;
 
-                string command = "AUTOTX: CLEAR\n";
+                string command = "AUTOTX:CLEAR\n";
                 serialPort.Write(command);
                 LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
 
@@ -714,6 +674,10 @@ namespace IFC.Models
                 return false; // Không hợp lệ
             }
             uint canid = canIdUInt;
+            if( canid <= 0)
+            {
+                return false; // Vượt quá giá trị CAN ID hợp lệ
+            }
             for (int i = 0; i < autoTxConfigs.Length; i++)
             {
                 if (autoTxConfigs[i] != null && autoTxConfigs[i].CANId == canid)

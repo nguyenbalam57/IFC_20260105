@@ -71,6 +71,7 @@
             grpTransmit = new System.Windows.Forms.GroupBox();
             dtgDataBytes = new System.Windows.Forms.DataGridView();
             grpReceive = new System.Windows.Forms.GroupBox();
+            btnData = new System.Windows.Forms.Button();
             btnClearReceive = new System.Windows.Forms.Button();
             lstCANMessages = new System.Windows.Forms.ListBox();
             grpLog = new System.Windows.Forms.GroupBox();
@@ -254,6 +255,7 @@
             // grpReceive
             // 
             grpReceive.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            grpReceive.Controls.Add(btnData);
             grpReceive.Controls.Add(btnClearReceive);
             grpReceive.Controls.Add(lstCANMessages);
             grpReceive.Location = new System.Drawing.Point(14, 93);
@@ -264,6 +266,18 @@
             grpReceive.TabIndex = 2;
             grpReceive.TabStop = false;
             grpReceive.Text = "Nhận CAN";
+            // 
+            // btnData
+            // 
+            btnData.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+            btnData.Location = new System.Drawing.Point(135, 156);
+            btnData.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            btnData.Name = "btnData";
+            btnData.Size = new System.Drawing.Size(117, 29);
+            btnData.TabIndex = 2;
+            btnData.Text = "Dữ liệu";
+            btnData.UseVisualStyleBackColor = true;
+            btnData.Click += btnData_Click;
             // 
             // btnClearReceive
             // 
@@ -286,7 +300,7 @@
             lstCANMessages.Location = new System.Drawing.Point(12, 25);
             lstCANMessages.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             lstCANMessages.Name = "lstCANMessages";
-            lstCANMessages.Size = new System.Drawing.Size(1212, 88);
+            lstCANMessages.Size = new System.Drawing.Size(1212, 130);
             lstCANMessages.TabIndex = 0;
             // 
             // grpLog
@@ -411,6 +425,7 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.DataGridView dtgDataBytes;
         private System.Windows.Forms.Button btnRefreshCANBaud;
+        private System.Windows.Forms.Button btnData;
     }
 }
 
