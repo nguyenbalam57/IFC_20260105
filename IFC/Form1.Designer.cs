@@ -11,10 +11,8 @@
         private System.Windows.Forms.GroupBox grpConnection;
         private System.Windows.Forms.ComboBox cmbPorts;
         private System.Windows.Forms.ComboBox cmbBaudRate;
-        private System.Windows.Forms.ComboBox cmbCANBaudRate;
         private System.Windows.Forms.Button btnConnect;
         private System.Windows.Forms.Button btnRefreshPorts;
-        private System.Windows.Forms.Button btnSetCANBaud;
 
         // Transmit Controls
         private System.Windows.Forms.GroupBox grpTransmit;
@@ -58,13 +56,9 @@
         private void InitializeComponent()
         {
             grpConnection = new System.Windows.Forms.GroupBox();
-            btnRefreshCANBaud = new System.Windows.Forms.Button();
-            label3 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
             label1 = new System.Windows.Forms.Label();
-            btnSetCANBaud = new System.Windows.Forms.Button();
             cmbBaudRate = new System.Windows.Forms.ComboBox();
-            cmbCANBaudRate = new System.Windows.Forms.ComboBox();
             btnConnect = new System.Windows.Forms.Button();
             btnRefreshPorts = new System.Windows.Forms.Button();
             cmbPorts = new System.Windows.Forms.ComboBox();
@@ -93,13 +87,9 @@
             // grpConnection
             // 
             grpConnection.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            grpConnection.Controls.Add(btnRefreshCANBaud);
-            grpConnection.Controls.Add(label3);
             grpConnection.Controls.Add(label2);
             grpConnection.Controls.Add(label1);
-            grpConnection.Controls.Add(btnSetCANBaud);
             grpConnection.Controls.Add(cmbBaudRate);
-            grpConnection.Controls.Add(cmbCANBaudRate);
             grpConnection.Controls.Add(btnConnect);
             grpConnection.Controls.Add(btnRefreshPorts);
             grpConnection.Controls.Add(cmbPorts);
@@ -111,31 +101,6 @@
             grpConnection.TabIndex = 0;
             grpConnection.TabStop = false;
             grpConnection.Text = "Kết nối UART";
-            // 
-            // btnRefreshCANBaud
-            // 
-            btnRefreshCANBaud.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            btnRefreshCANBaud.Location = new System.Drawing.Point(1019, 22);
-            btnRefreshCANBaud.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            btnRefreshCANBaud.Name = "btnRefreshCANBaud";
-            btnRefreshCANBaud.Size = new System.Drawing.Size(99, 27);
-            btnRefreshCANBaud.TabIndex = 12;
-            btnRefreshCANBaud.Text = "Làm mới CAN";
-            btnRefreshCANBaud.UseVisualStyleBackColor = true;
-            btnRefreshCANBaud.Visible = false;
-            btnRefreshCANBaud.Click += btnRefreshCANBaud_Click;
-            // 
-            // label3
-            // 
-            label3.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            label3.AutoSize = true;
-            label3.Location = new System.Drawing.Point(760, 28);
-            label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            label3.Name = "label3";
-            label3.Size = new System.Drawing.Size(65, 15);
-            label3.TabIndex = 11;
-            label3.Text = "CAN Baud:";
-            label3.Visible = false;
             // 
             // label2
             // 
@@ -157,19 +122,6 @@
             label1.TabIndex = 9;
             label1.Text = "COM Port:";
             // 
-            // btnSetCANBaud
-            // 
-            btnSetCANBaud.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            btnSetCANBaud.Location = new System.Drawing.Point(1125, 22);
-            btnSetCANBaud.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            btnSetCANBaud.Name = "btnSetCANBaud";
-            btnSetCANBaud.Size = new System.Drawing.Size(99, 27);
-            btnSetCANBaud.TabIndex = 4;
-            btnSetCANBaud.Text = "Set CAN";
-            btnSetCANBaud.UseVisualStyleBackColor = true;
-            btnSetCANBaud.Visible = false;
-            btnSetCANBaud.Click += btnSetCANBaud_Click;
-            // 
             // cmbBaudRate
             // 
             cmbBaudRate.Location = new System.Drawing.Point(446, 24);
@@ -177,17 +129,6 @@
             cmbBaudRate.Name = "cmbBaudRate";
             cmbBaudRate.Size = new System.Drawing.Size(174, 23);
             cmbBaudRate.TabIndex = 8;
-            // 
-            // cmbCANBaudRate
-            // 
-            cmbCANBaudRate.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            cmbCANBaudRate.FormattingEnabled = true;
-            cmbCANBaudRate.Location = new System.Drawing.Point(837, 24);
-            cmbCANBaudRate.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            cmbCANBaudRate.Name = "cmbCANBaudRate";
-            cmbCANBaudRate.Size = new System.Drawing.Size(174, 23);
-            cmbCANBaudRate.TabIndex = 2;
-            cmbCANBaudRate.Visible = false;
             // 
             // btnConnect
             // 
@@ -422,9 +363,7 @@
 
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.Label label3;
         private System.Windows.Forms.DataGridView dtgDataBytes;
-        private System.Windows.Forms.Button btnRefreshCANBaud;
         private System.Windows.Forms.Button btnData;
     }
 }

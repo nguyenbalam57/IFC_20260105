@@ -18,8 +18,13 @@ namespace IFC.Models
     public class SerialManager : IDisposable
     {
         private SerialPort serialPort;
-        private Thread readThread;
-        private bool isRunning;
+
+        // Code cải tiến sử dụng Task thay vì Thread
+        private Task readTask;
+        private CancellationTokenSource cancellationTokenSource;
+
+        // Lock cho write operations (thread-safe)
+        private readonly SemaphoreSlim writeSemaphore = new SemaphoreSlim(1, 1);
 
         public event EventHandler<CANMessage> CANMessageReceived;
         public event EventHandler<string> LogMessageReceived;
@@ -31,7 +36,7 @@ namespace IFC.Models
 
         private CANBaudRateManager configCANBaud;
 
-        // ⭐ Thêm event mới cho AUTOTX Status
+        // Thêm event mới cho AUTOTX Status
         public event EventHandler<AutoTxStatusEventArgs> AutoTxStatusReceived;
 
         // ⭐ Thêm Dictionary để quản lý Auto TX messages
@@ -54,18 +59,21 @@ namespace IFC.Models
             }
         }
 
+        #region Connect / Disconnect
+
         /// <summary>
         /// Kết nối với UART (COM)
+        /// thay đổi thành Async task - Non-blocking
         /// </summary>
         /// <param name="portName"></param>
         /// <param name="baudRate"></param>
         /// <returns></returns>
-        public bool Connect(string portName, int baudRate)
+        public async Task<bool> ConnectAsync(string portName, int baudRate)
         {
             try
             {
                 if (serialPort.IsOpen)
-                    Disconnect();
+                    await DisconnectAsync();
 
                 serialPort.PortName = portName;
                 serialPort.BaudRate = baudRate;
@@ -73,16 +81,22 @@ namespace IFC.Models
                 serialPort.Parity = Parity.None;
                 serialPort.StopBits = StopBits.One;
                 serialPort.Handshake = Handshake.None;
-                serialPort.ReadTimeout = 500;
-                serialPort.WriteTimeout = 500;
 
-                serialPort.Open();
+                // Increase buffer sizes
+                serialPort.ReadBufferSize = 16384;  // 16 KB
+                serialPort.WriteBufferSize = 8192;   // 8 KB
 
-                // Bắt đầu thread đọc dữ liệu
-                isRunning = true;
-                readThread = new Thread(ReadDataThread);
-                readThread.IsBackground = true;
-                readThread.Start();
+                serialPort.ReadTimeout = 1000;
+                serialPort.WriteTimeout = 1000;
+
+                // Open port in background thread to avoid UI blocking
+                await Task.Run(() => serialPort.Open());
+
+                // Tạo CancellationTokenSource mới
+                cancellationTokenSource = new CancellationTokenSource();
+
+                // Bắt đầu async read task
+                readTask = ReadDataAsync(cancellationTokenSource.Token);
 
                 ConnectionChanged?.Invoke(this, true);
                 LogMessageReceived?.Invoke(this, $"Đã kết nối {portName} @ {baudRate} baud");
@@ -97,19 +111,38 @@ namespace IFC.Models
         }
 
         /// <summary>
+        /// Backward compatibility - Synchronous wrapper
+        /// </summary>
+        public bool Connect(string portName, int baudRate)
+        {
+            return ConnectAsync(portName, baudRate).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// Ngắt kết nối với UART (COM)
         /// </summary>
-        public void Disconnect()
+        public async Task DisconnectAsync()
         {
             try
             {
-                isRunning = false;
+                // Cancel async operations
+                cancellationTokenSource?.Cancel();
 
-                if (readThread != null && readThread.IsAlive)
-                    readThread.Join(1000);
+                // Wait for read task to complete (with timeout)
+                if (readTask != null)
+                {
+                    await Task.WhenAny(readTask, Task.Delay(2000));
+                }
 
+                // Close port in background thread
                 if (serialPort.IsOpen)
-                    serialPort.Close();
+                {
+                    await Task.Run(() => serialPort.Close());
+                }
+
+                // Cleanup
+                cancellationTokenSource?.Dispose();
+                cancellationTokenSource = null;
 
                 ConnectionChanged?.Invoke(this, false);
                 LogMessageReceived?.Invoke(this, "Đã ngắt kết nối");
@@ -120,76 +153,110 @@ namespace IFC.Models
             }
         }
 
+        /// <summary>
+        /// Backward compatibility - Synchronous wrapper
+        /// </summary>
+        public void Disconnect()
+        {
+            DisconnectAsync().GetAwaiter().GetResult();
+        }
+
+        #endregion
+
         #region Nhận dữ liệu từ Serial Port
 
         /// <summary>
         /// Đọc data từ serial port trong một thread riêng
         /// </summary>
-        private void ReadDataThread()
+        private async Task ReadDataAsync(CancellationToken cancellationToken)
         {
             byte[] buffer = new byte[1024];
             int bufferIndex = 0;
 
-            while (isRunning && serialPort.IsOpen)
+            try
             {
-                try
+                while (!cancellationToken.IsCancellationRequested && serialPort.IsOpen)
                 {
-                    if (serialPort.BytesToRead > 0)
+                    try
                     {
-                        int bytesRead = serialPort.Read(buffer, bufferIndex, buffer.Length - bufferIndex);
-                        bufferIndex += bytesRead;
-
-                        // Tìm ký tự kết thúc frame (ví dụ: '\n')
-                        int newlineIndex;
-                        while ((newlineIndex = Array.IndexOf(buffer, (byte)'\n', 0, bufferIndex)) >= 0)
+                        if (serialPort.BytesToRead > 0)
                         {
-                            // Xử lý frame
-                            byte[] frame = new byte[newlineIndex];
-                            Array.Copy(buffer, frame, newlineIndex);
-                            ProcessReceivedFrame(frame);
+                            // ✅ Async read (non-blocking)
+                            int bytesToRead = Math.Min(serialPort.BytesToRead, buffer.Length - bufferIndex);
 
-                            // Dịch chuyển buffer
-                            int remaining = bufferIndex - newlineIndex - 1;
-                            if (remaining > 0)
-                                Array.Copy(buffer, newlineIndex + 1, buffer, 0, remaining);
-                            bufferIndex = remaining;
+                            // Wrap synchronous Read in Task. Run for true async
+                            int bytesRead = await Task.Run(() =>
+                                serialPort.Read(buffer, bufferIndex, bytesToRead),
+                                cancellationToken);
+
+                            bufferIndex += bytesRead;
+
+                            // Tìm ký tự kết thúc frame (ví dụ: '\n')
+                            int newlineIndex;
+                            while ((newlineIndex = Array.IndexOf(buffer, (byte)'\n', 0, bufferIndex)) >= 0)
+                            {
+                                // Xử lý frame
+                                byte[] frame = new byte[newlineIndex];
+                                Array.Copy(buffer, frame, newlineIndex);
+
+                                // Process frame asynchronously
+                                await ProcessReceivedFrameAsync(frame);
+
+                                // Dịch chuyển buffer
+                                int remaining = bufferIndex - newlineIndex - 1;
+                                if (remaining > 0)
+                                    Array.Copy(buffer, newlineIndex + 1, buffer, 0, remaining);
+                                bufferIndex = remaining;
+                            }
+                        }
+                        else
+                        {
+                            // Async delay instead of Thread.Sleep
+                            await Task.Delay(10, cancellationToken);
                         }
                     }
-                    else
+                    catch (OperationCanceledException)
                     {
-                        Thread.Sleep(10);
+                        // Expected when cancelling
+                        break;
+                    }
+                    catch (TimeoutException)
+                    {
+                        // Normal timeout, continue
+                    }
+                    catch (Exception ex)
+                    {
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
+                            LogMessageReceived?.Invoke(this, $"Lỗi đọc dữ liệu: {ex.Message}");
+                        }
                     }
                 }
-                catch (TimeoutException)
-                {
-                    // Timeout bình thường, tiếp tục
-                }
-                catch (Exception ex)
-                {
-                    if (isRunning)
-                        LogMessageReceived?.Invoke(this, $"Lỗi đọc dữ liệu: {ex.Message}");
-                }
             }
+            catch (Exception ex)
+            {
+                LogMessageReceived?.Invoke(this, $"Read loop error: {ex.Message}");
+            }
+
+            
         }
 
         // Cập nhật hàm ProcessReceivedFrame
-        private void ProcessReceivedFrame(byte[] frame)
+        private async Task ProcessReceivedFrameAsync(byte[] frame)
         {
             try
             {
-                string frameStr = Encoding.ASCII.GetString(frame).Trim();
+                // ✅ Decode in background thread (CPU-intensive)
+                string frameStr = await Task.Run(() =>
+                    Encoding.ASCII.GetString(frame).Trim());
 
                 if (frameStr.StartsWith("CAN:"))
                 {
-                    ParseCANMessage(frameStr);
+                    await ParseCANMessageAsync(frameStr);
                 }
                 else if (frameStr.StartsWith("LOG:"))
                 {
                     LogMessageReceived?.Invoke(this, frameStr.Substring(4));
-                }
-                else if (frameStr.StartsWith("STATUS:"))
-                {
-                    ParseCANStatus(frameStr);
                 }
                 else if (frameStr.StartsWith("AUTOTX:") || frameStr.StartsWith("========"))
                 {
@@ -207,85 +274,44 @@ namespace IFC.Models
         /// bắm tin nhắn CAN từ dữ liệu nhận được
         /// </summary>
         /// <param name="data"></param>
-        private void ParseCANMessage(string data)
+        private async Task ParseCANMessageAsync(string data)
         {
-            // Format: "CAN:ID:DLC:D0:D1:D2:D3:D4:D5:D6:D7"
-            string[] parts = data.Split(':');
-
-            if (parts.Length >= 3)
+            // Parse in background thread (avoid blocking)
+            var msg = await Task.Run(() =>
             {
-                CANMessage msg = new CANMessage();
+                // Format: "CAN:ID:DLC:D0:D1:D2:D3:D4:D5:D6:D7"
+                string[] parts = data.Split(':');
 
-                // Parse CAN ID (hex)
-                msg.CANId = Convert.ToUInt32(parts[1], 16);
-
-                // Parse DLC
-                msg.DLC = int.Parse(parts[2]);
-
-                // Parse Data bytes
-                int dataStartIndex = 3;
-                for (int i = 0; i < msg.DLC && (dataStartIndex + i) < parts.Length; i++)
+                if (parts.Length >= 3)
                 {
-                    msg.Data[i] = Convert.ToByte(parts[dataStartIndex + i], 16);
-                }
+                    CANMessage message = new CANMessage();
 
-                if (msg.CANId > 0x7FF)
-                    msg.IsExtended = true;
+                    // Parse CAN ID (hex)
+                    message.CANId = Convert.ToUInt32(parts[1], 16);
 
-                msg.Timestamp = DateTime.Now;
-                CANMessageReceived?.Invoke(this, msg);
-            }
-        }
+                    // Parse DLC
+                    message.DLC = int.Parse(parts[2]);
 
-        /// <summary>
-        /// Parse CAN Status từ STM32
-        /// Format: "STATUS:CAN:INIT:prescaler:timeseg1:timeseg2:sjw:rxerr:txerr"
-        /// </summary>
-        private void ParseCANStatus(string data)
-        {
-            // Example: "STATUS:CAN:INIT:6:12:2:1:0:0"
-            string[] parts = data.Split(':');
-
-            if (parts[1] == "CAN" &&
-                parts.Length >= 9)
-            {
-                CANStatus status = new CANStatus();
-                status.IsInitialized = (parts[2] == "INIT");
-
-                if (status.IsInitialized)
-                {
-                    int prescaler = int.Parse(parts[3]);
-                    int timeSeg1 = int.Parse(parts[4]);
-                    int timeSeg2 = int.Parse(parts[5]);
-                    int sjw = int.Parse(parts[6]);
-                    status.RxErrorCount = int.Parse(parts[7]);
-                    status.TxErrorCount = int.Parse(parts[8]);
-
-                    // Tìm baudrate phù hợp
-                    status.CurrentBaudRate = configCANBaud.LoadBaudRates()
-                        .Find(b => b.Prescaler == prescaler &&
-                                  b.TimeSeg1 == timeSeg1 &&
-                                  b.TimeSeg2 == timeSeg2);
-
-                    if (status.CurrentBaudRate == null)
+                    // Parse Data bytes
+                    int dataStartIndex = 3;
+                    for (int i = 0; i < message.DLC && (dataStartIndex + i) < parts.Length; i++)
                     {
-                        // Tạo custom baud rate
-                        int apb1Clock = 45; // MHz
-                        int tq = 1 + timeSeg1 + timeSeg2;
-                        int baudRate = (apb1Clock * 1000000) / (prescaler * tq);
-
-                        status.CurrentBaudRate = new CANBaudRate(
-                            $"{baudRate / 1000} kbps",
-                            baudRate,
-                            prescaler,
-                            timeSeg1,
-                            timeSeg2,
-                            sjw
-                        );
+                        message.Data[i] = Convert.ToByte(parts[dataStartIndex + i], 16);
                     }
-                }
 
-                CANStatusReceived?.Invoke(this, status);
+                    if (message.CANId > 0x7FF)
+                        message.IsExtended = true;
+
+                    message.Timestamp = DateTime.Now;
+                    return message;
+                }
+                return null;
+            });
+
+                
+            if (msg != null)
+            {
+                CANMessageReceived?.Invoke(this, msg);
             }
         }
 
@@ -316,8 +342,11 @@ namespace IFC.Models
         /// </summary>
         /// <param name="config"></param>
         /// <returns></returns>
-        public bool SendCANMessage(CANTransmitConfig config)
+        public async Task<bool> SendCANMessageAsync(CANTransmitConfig config)
         {
+            // ✅ Acquire semaphore for thread-safe write
+            await writeSemaphore.WaitAsync();
+
             try
             {
                 if (!serialPort.IsOpen)
@@ -345,7 +374,10 @@ namespace IFC.Models
                 }
                 sb.Append("\n");
 
-                serialPort.Write(sb.ToString());
+                // Async write
+                byte[] data = Encoding.ASCII.GetBytes(sb.ToString());
+                await Task.Run(() => serialPort.Write(data, 0, data.Length));
+
                 LogMessageReceived?.Invoke(this, $"Đã gửi: {sb.ToString().Trim()}");
 
                 return true;
@@ -355,52 +387,19 @@ namespace IFC.Models
                 LogMessageReceived?.Invoke(this, $"Lỗi gửi CAN: {ex.Message}");
                 return false;
             }
-        }
-
-        /// <summary>
-        /// Cấu hình CAN Baud Rate
-        /// </summary>
-        public bool SetCANBaudRate(CANBaudRate baudRate)
-        {
-            try
+            finally
             {
-                if (!serialPort.IsOpen)
-                    return false;
-
-                // Command format: "CFG:CANBAUD:prescaler:timeseg1:timeseg2:sjw\n"
-                string command = $"{baudRate.ToConfigCommand()}\n";
-                serialPort.Write(command);
-
-                LogMessageReceived?.Invoke(this, $"Đã gửi cấu hình CAN: {baudRate.Name}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogMessageReceived?.Invoke(this, $"Lỗi cấu hình CAN baud rate: {ex.Message}");
-                return false;
+                // Release semaphore
+                writeSemaphore.Release();
             }
         }
 
         /// <summary>
-        /// Yêu cầu STM32 gửi thông tin CAN hiện tại
+        /// Backward compatibility
         /// </summary>
-        public bool RequestCANStatus()
+        public bool SendCANMessage(CANTransmitConfig config)
         {
-            try
-            {
-                if (!serialPort.IsOpen)
-                    return false;
-
-                string command = "GET:CANSTATUS\n";
-                serialPort.Write(command);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogMessageReceived?.Invoke(this, $"Lỗi yêu cầu CAN status: {ex.Message}");
-                return false;
-            }
+            return SendCANMessageAsync(config).GetAwaiter().GetResult();
         }
 
         #endregion
@@ -416,14 +415,42 @@ namespace IFC.Models
         }
 
         /// <summary>
+        /// Generic async command sender
+        /// </summary>
+        private async Task<bool> SendCommandAsync(string command)
+        {
+            await writeSemaphore.WaitAsync();
+
+            try
+            {
+                if (!serialPort.IsOpen)
+                    return false;
+
+                byte[] data = Encoding.ASCII.GetBytes(command + "\n");
+                await Task.Run(() => serialPort.Write(data, 0, data.Length));
+
+                LogMessageReceived?.Invoke(this, $"Sent: {command}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogMessageReceived?.Invoke(this, $"ERR SendCommand: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                writeSemaphore.Release();
+            }
+        }
+
+        /// <summary>
         /// AUTOTX: ADD - Thêm message vào index chỉ định
         /// Format: AUTOTX:ADD:Index:Extended:ID:Interval:DLC:D0:D1:...
         /// </summary>
-        public bool AutoTx_Add(int index, CANTransmitConfig config)
+        public async Task<bool> AutoTx_AddAsync(int index, CANTransmitConfig config)
         {
             try
             {
-                if (!serialPort.IsOpen) return false;
 
                 if (index < 0 || index > 9)
                 {
@@ -437,7 +464,7 @@ namespace IFC.Models
                 tempCan.IsEnabled = true;
                 if (tempCan.Equals(config))
                 {
-                    return AutoTx_Enable(index);
+                    return await AutoTx_EnableAsync(index);
                 }
 
                 // Build command
@@ -452,15 +479,16 @@ namespace IFC.Models
                 {
                     sb.Append($":{config.Data[i]:X2}");
                 }
-                sb.Append("\n");
 
-                serialPort.Write(sb.ToString());
-                LogMessageReceived?.Invoke(this, $"Sent: {sb.ToString().Trim()}");
+                bool result = await SendCommandAsync(sb.ToString());
 
                 // Lưu vào local dictionary
-                autoTxConfigs[index] = config;
+                if (result)
+                {
+                    autoTxConfigs[index] = config;
+                }
 
-                return true;
+                return result;
             }
             catch (Exception ex)
             {
@@ -469,16 +497,19 @@ namespace IFC.Models
             }
         }
 
+        public bool AutoTx_Add(int index, CANTransmitConfig config)
+        {
+            return AutoTx_AddAsync(index, config).GetAwaiter().GetResult();
+        }
+
         /// <summary>
         /// AUTOTX:UPDATE - Cập nhật message tại index
         /// Format: AUTOTX:UPDATE:Index:Extended:ID: Interval:  DLC:D0:D1:...
         /// </summary>
-        public bool AutoTx_Update(int index, CANTransmitConfig config)
+        public async Task<bool> AutoTx_UpdateAsync(int index, CANTransmitConfig config)
         {
             try
             {
-                if (!serialPort.IsOpen) return false;
-
                 if (index < 0 || index > 9)
                 {
                     LogMessageReceived?.Invoke(this, $"ERR: Invalid index {index}");
@@ -496,18 +527,15 @@ namespace IFC.Models
                 {
                     sb.Append($":{config.Data[i]:X2}");
                 }
-                sb.Append("\n");
 
-                serialPort.Write(sb.ToString());
-                LogMessageReceived?.Invoke(this, $"Sent: {sb.ToString().Trim()}");
+                bool result = await SendCommandAsync(sb.ToString());
 
-                // Cập nhật local dictionary
-                if (autoTxConfigs[index].IsEnabled)
+                if (result && autoTxConfigs[index].IsEnabled)
                 {
                     autoTxConfigs[index] = config;
                 }
 
-                return true;
+                return result;
             }
             catch (Exception ex)
             {
@@ -516,142 +544,124 @@ namespace IFC.Models
             }
         }
 
+        public bool AutoTx_Update(int index, CANTransmitConfig config)
+        {
+            return AutoTx_UpdateAsync(index, config).GetAwaiter().GetResult();
+        }
+
         /// <summary>
         /// AUTOTX:  REMOVE - Xóa theo index
         /// Format: AUTOTX:REMOVE:Index
         /// </summary>
-        public bool AutoTx_Remove(int index)
+        public async Task<bool> AutoTx_RemoveAsync(int index)
         {
-            try
-            {
-                if (!serialPort.IsOpen) return false;
+
 
                 string command = $"AUTOTX:REMOVE:{index}\n";
-                serialPort.Write(command);
-                LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
 
-                // Xóa khỏi local dictionary
-                if (autoTxConfigs[index].IsEnabled)
+                bool result = await SendCommandAsync(command);
+
+                if (result && autoTxConfigs[index].IsEnabled)
                 {
                     autoTxConfigs[index] = new CANTransmitConfig();
                 }
 
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogMessageReceived?.Invoke(this, $"ERR AutoTx_Remove: {ex.Message}");
-                return false;
-            }
+                return result;
+
+        }
+
+        public bool AutoTx_Remove(int index)
+        {
+            return AutoTx_RemoveAsync(index).GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// AUTOTX: ENABLE - Enable auto-transmit
         /// Format: AUTOTX:ENABLE:Index
         /// </summary>
-        public bool AutoTx_Enable(int index)
+        public async Task<bool> AutoTx_EnableAsync(int index)
         {
-            try
-            {
-                if (!serialPort.IsOpen) return false;
+
 
                 string command = $"AUTOTX:ENABLE:{index}\n";
-                serialPort.Write(command);
-                LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
 
-                // Cập nhật local config
-                if (autoTxConfigs[index].IsEnabled == false)
+                bool result = await SendCommandAsync(command);
+
+                if (result && !autoTxConfigs[index].IsEnabled)
                 {
                     autoTxConfigs[index].IsEnabled = true;
                 }
 
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogMessageReceived?.Invoke(this, $"ERR AutoTx_Enable: {ex.Message}");
-                return false;
-            }
+                return result;
+
+        }
+
+        public bool AutoTx_Enable(int index)
+        {
+            return AutoTx_EnableAsync(index).GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// AUTOTX:DISABLE - Disable auto-transmit
         /// Format: AUTOTX:DISABLE:Index
         /// </summary>
-        public bool AutoTx_Disable(int index)
+        public async Task<bool> AutoTx_DisableAsync(int index)
         {
-            try
-            {
-                if (!serialPort.IsOpen) return false;
 
                 string command = $"AUTOTX:DISABLE:{index}\n";
-                serialPort.Write(command);
-                LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
 
-                // Cập nhật local config
-                if (autoTxConfigs[index].IsEnabled == true)
+                bool result = await SendCommandAsync(command);
+
+                if (result && autoTxConfigs[index].IsEnabled)
                 {
                     autoTxConfigs[index].IsEnabled = false;
                 }
 
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogMessageReceived?.Invoke(this, $"ERR AutoTx_Disable: {ex.Message}");
-                return false;
-            }
+                return result;
+
+        }
+
+        public bool AutoTx_Disable(int index)
+        {
+            return AutoTx_DisableAsync(index).GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// AUTOTX:CLEAR - Xóa tất cả auto-transmit
         /// Format:  AUTOTX:CLEAR
         /// </summary>
+        public async Task<bool> AutoTx_ClearAsync()
+        {
+            bool result = await SendCommandAsync("AUTOTX:CLEAR");
+
+            if (result)
+            {
+                ClearCANTransmitConfigs();
+            }
+
+            return result;
+        }
         public bool AutoTx_Clear()
         {
-            try
-            {
-                if (!serialPort.IsOpen) return false;
-
-                string command = "AUTOTX:CLEAR\n";
-                serialPort.Write(command);
-                LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
-
-                // Xóa tất cả local configs
-                ClearCANTransmitConfigs();
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogMessageReceived?.Invoke(this, $"ERR AutoTx_Clear: {ex.Message}");
-                return false;
-            }
+            return AutoTx_ClearAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// AUTOTX:  STATUS - Yêu cầu status
         /// Format: AUTOTX:STATUS
         /// </summary>
-        public bool AutoTx_RequestStatus()
+        public async Task<bool> AutoTx_RequestStatusAsync()
         {
-            try
-            {
-                if (!serialPort.IsOpen) return false;
-
-                string command = "AUTOTX:STATUS\n";
-                serialPort.Write(command);
-                LogMessageReceived?.Invoke(this, $"Sent: {command.Trim()}");
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogMessageReceived?.Invoke(this, $"ERR AutoTx_RequestStatus: {ex.Message}");
-                return false;
-            }
+            return await SendCommandAsync("AUTOTX:STATUS");
         }
 
+        public bool AutoTx_RequestStatus()
+        {
+            return AutoTx_RequestStatusAsync().GetAwaiter().GetResult();
+        }
+        #endregion
+
+        #region Helper Methods
         /// <summary>
         /// Lấy danh sách Auto TX configs hiện tại
         /// </summary>
@@ -701,17 +711,32 @@ namespace IFC.Models
             return false; // Không tìm thấy
         }
 
-        #endregion
-
         public static string[] GetAvailablePorts()
         {
             return SerialPort.GetPortNames();
         }
+        #endregion
+
+        #region Dispose
 
         public void Dispose()
         {
-            Disconnect();
+            DisconnectAsync().GetAwaiter().GetResult();
+            writeSemaphore?.Dispose();
             serialPort?.Dispose();
         }
+
+        /// <summary>
+        /// Async dispose
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+            await DisconnectAsync();
+            writeSemaphore?.Dispose();
+            serialPort?.Dispose();
+        }
+
+        #endregion
+
     }
 }
