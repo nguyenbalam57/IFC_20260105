@@ -34,8 +34,6 @@ namespace IFC.Models
 
         public event EventHandler<CANStatus> CANStatusReceived;
 
-        private CANBaudRateManager configCANBaud;
-
         // Thêm event mới cho AUTOTX Status
         public event EventHandler<AutoTxStatusEventArgs> AutoTxStatusReceived;
 
@@ -45,7 +43,6 @@ namespace IFC.Models
         public SerialManager()
         {
             serialPort = new SerialPort();
-            configCANBaud = new CANBaudRateManager();
 
             ClearCANTransmitConfigs();
         }

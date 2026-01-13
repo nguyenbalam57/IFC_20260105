@@ -25,14 +25,10 @@ namespace IFC
         private int receivedCount = 0;
         private int transmittedCount = 0;
 
-        private CANBaudRate calculatedCANBaudRate = null; // Lưu baud rate đã tính
-
         private CANStatus currentCANStatus;
 
         // Context Menu Strip
         private ContextMenuStrip contextMenuStrip;
-
-        private CANBaudRateManager configCANBaud;
 
         private const int MAX_ROWS = 10;
 
@@ -40,12 +36,9 @@ namespace IFC
         private Dictionary<uint, int> canIdListBoxIndexMap = new Dictionary<uint, int>();
         private bool isDisplayData = false;
 
-
         public Form1()
         {
             InitializeComponent();
-
-            configCANBaud = new CANBaudRateManager();
 
             InitializeManagers();
             InitializeUI();
@@ -66,13 +59,10 @@ namespace IFC
 
             // Transmit Timer
             transmitTimer = new System.Timers.Timer();
-            //transmitTimer.Elapsed += TransmitTimer_Elapsed;
             transmitTimer.AutoReset = true;
 
             // TX Config
             txConfig = new CANTransmitConfig();
-
-            serialManager.CANStatusReceived += OnCANStatusReceived;
         }
 
         private void InitializeUI()
@@ -87,11 +77,9 @@ namespace IFC
             cmbBaudRate.Items.AddRange(new object[] { 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600 });
             cmbBaudRate.SelectedItem = 115200;
 
-            RefreshCANBaud();
-
             UpdateConnectionStatus(false);
 
-            // ⭐ Enable custom drawing cho ListBox (optional)
+            // Enable custom drawing cho ListBox (optional)
             InitializeListBoxDrawing();
         }
 
@@ -144,7 +132,7 @@ namespace IFC
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void btnConnect_Click(object sender, EventArgs e)
+        private async void btnConnect_Click(object sender, EventArgs e)
         {
             if (!serialManager.IsConnected)
             {
@@ -157,20 +145,56 @@ namespace IFC
                     return;
                 }
 
-                if (serialManager.Connect(port, baudRate))
-                {
-                    UpdateConnectionStatus(true);
+                // Disable button để tránh double-click
+                btnConnect.Enabled = false;
+                btnConnect.Text = "Đang kết nối...";
 
-                    // Delay rồi yêu cầu CAN status
-                    System.Threading.Thread.Sleep(500);
-                    serialManager.RequestCANStatus();
+                try
+                {
+                    // ✅ Await async operation - UI không bị đóng băng! 
+                    bool success = await serialManager.ConnectAsync(port, baudRate);
+
+                    if (success)
+                    {
+                        UpdateConnectionStatus(true);
+
+                        // ✅ Async delay thay vì Thread.Sleep
+                        await Task.Delay(500);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Kết nối thất bại!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi kết nối: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    btnConnect.Enabled = true;
                 }
             }
             else
             {
-                serialManager.Disconnect();
-                transmitTimer.Stop();
-                UpdateConnectionStatus(false);
+                // ✅ Disconnect async
+                btnConnect.Enabled = false;
+                btnConnect.Text = "Đang ngắt... ";
+
+                try
+                {
+                    await serialManager.DisconnectAsync();
+                    transmitTimer.Stop();
+                    UpdateConnectionStatus(false);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi ngắt kết nối: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    btnConnect.Enabled = true;
+                }
             }
         }
         private void btnRefreshPorts_Click(object sender, EventArgs e)
@@ -179,120 +203,6 @@ namespace IFC
             cmbPorts.Items.AddRange(SerialManager.GetAvailablePorts());
             if (cmbPorts.Items.Count > 0)
                 cmbPorts.SelectedIndex = 0;
-        }
-
-        private void btnRefreshCANBaud_Click(object sender, EventArgs e)
-        {
-            RefreshCANBaud();
-        }
-
-        private void RefreshCANBaud()
-        {
-            // CAN Baud Rate ComboBox
-            //cmbCANBaudRate.Items.Clear();
-            cmbCANBaudRate.DataSource = configCANBaud.LoadBaudRates();
-            cmbCANBaudRate.DisplayMember = "Name";
-            cmbCANBaudRate.SelectedItem = configCANBaud.GetBaudRateByName("500 kbps");
-
-        }
-
-        /// <summary>
-        /// Đẩy CAN baud rate xuống vi điều khiển, xét lại baud rate và trả về lại kết quả
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void btnSetCANBaud_Click(object sender, EventArgs e)
-        {
-            if (!serialManager.IsConnected)
-            {
-                MessageBox.Show("Chưa kết nối!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            CANBaudRate selectedBaudRate = cmbCANBaudRate.SelectedItem as CANBaudRate;
-
-            if (selectedBaudRate != null)
-            {
-
-                DialogResult result = MessageBox.Show(
-                    $"Thay đổi CAN Baud Rate sang {selectedBaudRate.Name}?\n\n" +
-                    $"Prescaler: {selectedBaudRate.Prescaler}\n" +
-                    $"TimeSeg1: {selectedBaudRate.TimeSeg1}\n" +
-                    $"TimeSeg2: {selectedBaudRate.TimeSeg2}\n" +
-                    $"SJW: {selectedBaudRate.SyncJumpWidth}\n\n" +
-                    $"Vi điều khiển sẽ reset CAN peripheral! ",
-                    "Xác nhận",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question
-                );
-
-                if (result == DialogResult.Yes)
-                {
-                    if (serialManager.SetCANBaudRate(selectedBaudRate))
-                    {
-                        // Đợi STM32 cấu hình xong
-                        System.Threading.Thread.Sleep(1000);
-
-                        // Yêu cầu status mới
-                        serialManager.RequestCANStatus();
-                    }
-                }
-            }
-        }
-
-        private void OnCANStatusReceived(object sender, CANStatus status)
-        {
-            if (InvokeRequired)
-            {
-                Invoke(new Action(() => ProcessCANStatus(status)));
-            }
-            else
-            {
-                ProcessCANStatus(status);
-            }
-        }
-
-        private void ProcessCANStatus(CANStatus status)
-        {
-            currentCANStatus = status;
-
-            if (status.IsInitialized)
-            {
-
-                // Cập nhật ComboBox
-                if (status.CurrentBaudRate != null)
-                {
-                    // Tìm và chọn baud rate phù hợp
-                    for (int i = 0; i < cmbCANBaudRate.Items.Count; i++)
-                    {
-                        CANBaudRate item = cmbCANBaudRate.Items[i] as CANBaudRate;
-                        if (item != null &&
-                            item.Prescaler == status.CurrentBaudRate.Prescaler &&
-                            item.TimeSeg1 == status.CurrentBaudRate.TimeSeg1)
-                        {
-                            cmbCANBaudRate.SelectedIndex = i;
-                            break;
-                        }
-                    }
-                }
-
-                AppendSystemLog($"CAN Status: {status}");
-            }
-            else
-            {
-
-            }
-        }
-
-        private void TransmitTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            serialManager.SendCANMessage(txConfig);
-            transmittedCount++;
-
-            if (InvokeRequired)
-                Invoke(new Action(UpdateStatistics));
-            else
-                UpdateStatistics();
         }
 
         private void btnStartLog_Click(object sender, EventArgs e)
@@ -325,9 +235,9 @@ namespace IFC
         private void btnClearReceive_Click(object sender, EventArgs e)
         {
             lstCANMessages.Items.Clear();
-            canIdListBoxIndexMap.Clear(); // ⭐ Clear map khi clear ListBox
+            canIdListBoxIndexMap.Clear();
             receivedCount = 0;
-            transmittedCount = 0; // ⭐ Reset cả Tx counter
+            transmittedCount = 0;
             UpdateStatistics();
         }
 
@@ -347,7 +257,7 @@ namespace IFC
         private void updateDisplayButtonData()
         {
             // Cập nhật text button để hiển thị trạng thái
-            btnData.Text = isDisplayData ? "Mode: Update" : "Mode: List";
+            btnData.Text = isDisplayData ? "Single" : "List";
             btnData.BackColor = isDisplayData ? Color.LightBlue : SystemColors.Control;
         }
 
@@ -372,7 +282,7 @@ namespace IFC
         {
 
             // Xử lý thông điệp CAN
-            if(serialManager.GetAutoTxRowIndexById($"{message.CANId:X}", out int existingIndex))
+            if (serialManager.GetAutoTxRowIndexById($"{message.CANId:X}", out int existingIndex))
             {
                 message.IsRxTx = false; // Đánh dấu là Tx
             }
@@ -387,12 +297,12 @@ namespace IFC
 
             if (isDisplayData)
             {
-                // ⭐ Mode: Cập nhật cùng 1 dòng cho mỗi CAN ID
+                // Mode: Cập nhật cùng 1 dòng cho mỗi CAN ID
                 UpdateOrAddCANMessageInListBox(message, displayText);
             }
             else
             {
-                // ⭐ Mode: Hiển thị danh sách tách biệt (như cũ)
+                // Mode: Hiển thị danh sách tách biệt (như cũ)
                 lstCANMessages.Items.Insert(0, displayText);
 
                 // Giới hạn số dòng hiển thị
@@ -434,7 +344,7 @@ namespace IFC
                         lstCANMessages.Items[existingIndex] = displayText;
 
                         // Highlight dòng vừa cập nhật (optional)
-                        lstCANMessages.SelectedIndex = existingIndex;
+                        //lstCANMessages.SelectedIndex = existingIndex;
                     }
                     else
                     {
@@ -518,14 +428,42 @@ namespace IFC
             lblTxCount.Text = $"TX: {transmittedCount}";
         }
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            transmitTimer?.Stop();
-            logManager?.StopLogging();
-            serialManager?.Disconnect();
+            // Cancel closing temporarily
+            if (serialManager.IsConnected && e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true; // Tạm dừng đóng form
 
-            // ⭐ Gửi lệnh AUTOTX:CLEAR
-            serialManager.AutoTx_Clear();
+                // Disable form để user không thao tác
+                this.Enabled = false;
+
+                try
+                {
+                    transmitTimer?.Stop();
+                    logManager?.StopLogging();
+
+                    // Gửi lệnh AUTOTX: CLEAR async
+                    await serialManager.AutoTx_ClearAsync();
+
+                    // Disconnect async
+                    await serialManager.DisconnectAsync();
+
+                    // Dispose async
+                    await serialManager.DisposeAsync();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error during form closing: {ex.Message}");
+                }
+                finally
+                {
+                    // Đóng form thật sự
+                    this.Enabled = true;
+                    e.Cancel = false;
+                    Application.Exit();
+                }
+            }
         }
 
 
@@ -668,13 +606,15 @@ namespace IFC
             else if (columnName == "Interval")
             {
                 // Xử lý thay đổi data
-                HandleDataChanged(dgv, e.RowIndex);
+                // Fire-and-forget async
+                _ = HandleDataChangedAsync(dgv, e.RowIndex);
 
             }
             else if (columnName.StartsWith("Data"))
             {
                 // Xử lý thay đổi data0
-                HandleDataChanged(dgv, e.RowIndex);
+                // Fire-and-forget async
+                _ = HandleDataChangedAsync(dgv, e.RowIndex);
             }
         }
 
@@ -739,7 +679,7 @@ namespace IFC
                 intervalCell.ReadOnly = true;
                 intervalCell.Style.BackColor = Color.LightGray;
                 intervalCell.Style.ForeColor = Color.DarkGray;
-                intervalCell.Value = "0";
+                //intervalCell.Value = "0";
             }
             else // Multi
             {
@@ -759,7 +699,7 @@ namespace IFC
         /// <summary>
         /// Xử lý click vào button cell
         /// </summary>
-        private void DtgData_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        private async void DtgData_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
 
@@ -767,8 +707,8 @@ namespace IFC
 
             if (dgv.Columns[e.ColumnIndex].Name == "SendButton")
             {
-                // Xử lý click Send button
-                HandleSendButtonClick(dgv, e.RowIndex);
+                // Await async operation
+                await HandleSendButtonClickAsync(dgv, e.RowIndex);
             }
         }
 
@@ -801,7 +741,7 @@ namespace IFC
         /// <summary>
         /// Xử lý khi click Send button
         /// </summary>
-        private void HandleSendButtonClick(
+        private async Task HandleSendButtonClickAsync(
             DataGridView dgv,
             int rowIndex,
             bool isUpdate = false,
@@ -876,7 +816,7 @@ namespace IFC
 
             };
 
-            // ⭐ Sử dụng AUTOTX commands
+            // Sử dụng AUTOTX commands
             if ((mode == "Multi" && config.IntervalMs > 0))
             {
                 if (currentButtonText == "▶" || isUpdate)
@@ -890,12 +830,12 @@ namespace IFC
                     if (isUpdate)
                     {
                         // Update existing
-                        success = serialManager.AutoTx_Update(rowIndexOriginal, config);
+                        success = await serialManager.AutoTx_UpdateAsync(rowIndexOriginal, config);
                     }
                     else
                     {
                         // Add new
-                        success = serialManager.AutoTx_Add(rowIndexOriginal, config);
+                        success = await serialManager.AutoTx_AddAsync(rowIndexOriginal, config);
                     }
 
                     if (success)
@@ -912,7 +852,7 @@ namespace IFC
                         row.Cells["DLC"].ReadOnly = true;
                         dgv.InvalidateCell(buttonCell);
 
-                        string msg = isUpdate ? "✅ Cập nhật gửi liên tục..." : "✅ Bắt đầu gửi liên tục...  ";
+                        string msg = isUpdate ? "Cập nhật gửi liên tục..." : "Bắt đầu gửi liên tục...  ";
                         AppendSystemLog($"[Row {rowIndexOriginal}] {msg}");
 
                     }
@@ -920,7 +860,7 @@ namespace IFC
                 else if (currentButtonText == "⏹" || isStop) // currentButtonText == "⏹"
                 {
                     // Dừng gửi
-                    if (serialManager.AutoTx_Disable(rowIndexOriginal))
+                    if (await serialManager.AutoTx_DisableAsync(rowIndexOriginal))
                     {
                         buttonCell.Value = "▶";
                         row.Cells["Frame"].Style.BackColor = Color.White;
@@ -938,17 +878,14 @@ namespace IFC
             }
             else // Single
             {
-                // ⭐ Single - Gửi 1 lần (dùng TX command cũ)
+                // Single - Gửi 1 lần (dùng TX command cũ)
                 config.IsEnabled = false;
-                if (serialManager.SendCANMessage(config))
+                if (await serialManager.SendCANMessageAsync(config))
                 {
-                    AppendSystemLog($"[Row {rowIndex}] ✅ Gửi 1 lần");
+                    AppendSystemLog($"[Row {rowIndex}] Gửi 1 lần");
                 }
             }
 
-#if DEBUG
-            //MessageBox.Show(message, "CAN Send", MessageBoxButtons.OK, MessageBoxIcon.Information);
-#endif
         }
 
         // Kiểm tra CANID khi data thay đổi, có bị trùng không, nếu có thì bắt buộc nhập lại CANID
@@ -987,7 +924,7 @@ namespace IFC
         /// </summary>
         /// <param name="dgv"></param>
         /// <param name="rowIndex"></param>
-        private void HandleDataChanged(DataGridView dgv, int rowIndex)
+        private async Task HandleDataChangedAsync(DataGridView dgv, int rowIndex)
         {
             try
             {
@@ -999,23 +936,16 @@ namespace IFC
                 // Lấy CAN ID
                 string canId = row.Cells["CANID"].Value?.ToString() ?? "";
 
-                if (!uint.TryParse(canId, out uint uintCanId))
-                {
-                    Debug.WriteLine($"[Row {rowIndex}] Invalid or empty CAN ID");
-                    return;
-                }
-
-                // Kiểm tra CAN ID hợp lệ
-                if (string.IsNullOrWhiteSpace(canId))
-                {
-                    Debug.WriteLine($"[Row {rowIndex}] Invalid or empty CAN ID");
-                    return;
-                }
-
                 // Parse CAN ID
                 if (!uint.TryParse(canId, System.Globalization.NumberStyles.HexNumber, null, out uint canIdUint))
                 {
-                    Debug.WriteLine($"[Row {rowIndex}] Cannot parse CAN ID: {canId}");
+                    Debug.WriteLine($"[Row {rowIndex}] Invalid or empty CAN ID");
+                    return;
+                }
+
+                if (canIdUint <= 0)
+                {
+                    Debug.WriteLine($"[Row {rowIndex}] Invalid CAN ID value");
                     return;
                 }
 
@@ -1028,19 +958,11 @@ namespace IFC
 
                 var selectConfig = serialManager.GetCANTransmitAutoConfig(rowIndexOriginal);
 
-                if (selectConfig != null)
+                if (selectConfig != null && selectConfig.IsEnabled)
                 {
-                    Debug.WriteLine($"[Row {rowIndex}] Found config for CAN ID 0x{canIdUint: X}");
-
-                    if (selectConfig.IsEnabled)
-                    {
-                        Debug.WriteLine($"[Row {rowIndex}] Config is enabled, triggering send");
-                        HandleSendButtonClick(dgv, rowIndex, isUpdate: true);
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"[Row {rowIndex}] Config is disabled");
-                    }
+                    Debug.WriteLine($"[Row {rowIndex}] Config is enabled, triggering send");
+                    // Await async operation
+                    await HandleSendButtonClickAsync(dgv, rowIndex, isUpdate: true);
                 }
                 else
                 {
@@ -1066,27 +988,11 @@ namespace IFC
             DataGridView dgv = sender as DataGridView;
 
             if (dgv.CurrentCell.OwningColumn.Name == "DLC" ||
-                dgv.CurrentCell.OwningColumn.Name == "Interval")
+                dgv.CurrentCell.OwningColumn.Name == "Interval" ||
+                dgv.CurrentCell.OwningColumn.Name == "CANID" ||
+                dgv.CurrentCell.OwningColumn.Name.StartsWith("Data"))
             {
                 // DLC và Interval cell - chỉ cho phép nhập số
-                TextBox tb = e.Control as TextBox;
-                if (tb != null)
-                {
-                    tb.KeyPress += DtgData_KeyPress;
-                }
-            }
-            else if (dgv.CurrentCell.OwningColumn.Name == "CANID")
-            {
-                // CANID cell - chỉ cho phép nhập Hex (0-9, A-F)
-                TextBox tb = e.Control as TextBox;
-                if (tb != null)
-                {
-                    tb.KeyPress += DtgData_KeyPress;
-                }
-            }
-            else if (dgv.CurrentCell.OwningColumn.Name.StartsWith("Data"))
-            {
-                // Data cells - chỉ cho phép nhập Hex (0-9, A-F)
                 TextBox tb = e.Control as TextBox;
                 if (tb != null)
                 {
@@ -1100,7 +1006,7 @@ namespace IFC
         /// </summary>
         private void DtgData_KeyPress(object sender, KeyPressEventArgs e)
         {
-            DataGridView dgv = sender as DataGridView;
+            DataGridView dgv = ((TextBox)sender).Parent as DataGridView;
             if (dgv == null || dgv.CurrentCell == null) return;
 
             string columnName = dgv.CurrentCell.OwningColumn.Name;
@@ -1401,7 +1307,6 @@ namespace IFC
 
             try
             {
-
                 // Kết thúc edit mode
                 if (dataGridView.IsCurrentCellInEditMode)
                 {
@@ -1588,7 +1493,6 @@ namespace IFC
             {
                 Text = "Add Row",
                 ShortcutKeys = Keys.Control | Keys.N,
-                Image = SystemIcons.Application.ToBitmap() // Hoặc dùng icon resources
             };
             addRowMenuItem.Click += (sender, e) => AddNewRow(dataGridView);
             contextMenuStrip.Items.Add(addRowMenuItem);
@@ -1643,7 +1547,7 @@ namespace IFC
 
                 if (dataGridView.Rows.Count >= MAX_ROWS)
                 {
-                    MessageBox.Show($"Không thể thêm row mới.  Đã đạt giới hạn tối đa {MAX_ROWS} rows.",
+                    MessageBox.Show($"Không thể thêm row mới. Đã đạt giới hạn tối đa {MAX_ROWS} rows.",
                                     "Limit Reached", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -1660,7 +1564,7 @@ namespace IFC
                 // Cập nhật Data columns nếu cần
                 UpdateDataColumns(dataGridView);
 
-                Debug.WriteLine($"Added new row at index {newRowIndex}.  Total rows: {dataGridView.Rows.Count}");
+                Debug.WriteLine($"Added new row at index {newRowIndex}. Total rows: {dataGridView.Rows.Count}");
             }
             catch (Exception ex)
             {
@@ -1725,7 +1629,7 @@ namespace IFC
         /// <summary>
         /// Xóa row được chọn
         /// </summary>
-        private void RemoveSelectedRow(DataGridView dataGridView)
+        private async void RemoveSelectedRow(DataGridView dataGridView)
         {
             try
             {
@@ -1740,8 +1644,6 @@ namespace IFC
                 // Lấy row index cần xóa
                 int rowIndex = dataGridView.SelectedRows[0].Index;
 
-                uint canId = Convert.ToUInt32(dataGridView.Rows[rowIndex].Cells["CANID"].Value?.ToString(), 16);
-
                 // Confirm trước khi xóa
                 DialogResult result = MessageBox.Show(
                     $"Bạn có chắc muốn xóa row #{rowIndex + 1}?",
@@ -1751,8 +1653,8 @@ namespace IFC
 
                 if (result == DialogResult.Yes)
                 {
-                    /// ⭐ Gửi lệnh AUTOTX:REMOVE
-                    serialManager.AutoTx_Remove(rowIndex);
+                    // Async remove
+                    await serialManager.AutoTx_RemoveAsync(rowIndex);
 
                     // Xóa row
                     dataGridView.Rows.RemoveAt(rowIndex);
@@ -1762,7 +1664,7 @@ namespace IFC
                     // Nếu không còn row nào, khởi tạo lại
                     if (dataGridView.Rows.Count == 0)
                     {
-                        MessageBox.Show("Không còn row nào.  Đang khởi tạo lại DataGridView.. .",
+                        MessageBox.Show("Không còn row nào. Đang khởi tạo lại DataGridView.. .",
                                         "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                         InitialzeDataGridViewUI(dataGridView);
@@ -1779,7 +1681,7 @@ namespace IFC
         /// <summary>
         /// Xóa tất cả rows
         /// </summary>
-        private void RemoveAllRows(DataGridView dataGridView)
+        private async void RemoveAllRows(DataGridView dataGridView)
         {
             try
             {
@@ -1799,8 +1701,8 @@ namespace IFC
 
                 if (result == DialogResult.Yes)
                 {
-                    // ⭐ Gửi lệnh AUTOTX:CLEAR
-                    serialManager.AutoTx_Clear();
+                    // Gửi lệnh AUTOTX:CLEAR
+                    await serialManager.AutoTx_ClearAsync();
 
                     // Xóa tất cả rows
                     dataGridView.Rows.Clear();
@@ -1808,7 +1710,7 @@ namespace IFC
                     Debug.WriteLine("Removed all rows. Reinitializing DataGridView...");
 
                     // Khởi tạo lại DataGridView
-                    MessageBox.Show("Đã xóa tất cả rows.  Đang khởi tạo lại.. .",
+                    MessageBox.Show("Đã xóa tất cả rows. Đang khởi tạo lại.. .",
                                     "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     InitialzeDataGridViewUI(dataGridView);
@@ -1822,11 +1724,8 @@ namespace IFC
         }
 
         #endregion
-
-
-
         #endregion
 
-        
+
     }
 }

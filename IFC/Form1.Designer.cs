@@ -97,7 +97,7 @@
             grpConnection.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             grpConnection.Name = "grpConnection";
             grpConnection.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            grpConnection.Size = new System.Drawing.Size(1236, 73);
+            grpConnection.Size = new System.Drawing.Size(1256, 73);
             grpConnection.TabIndex = 0;
             grpConnection.TabStop = false;
             grpConnection.Text = "Kết nối UART";
@@ -172,7 +172,7 @@
             grpTransmit.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             grpTransmit.Name = "grpTransmit";
             grpTransmit.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            grpTransmit.Size = new System.Drawing.Size(1236, 164);
+            grpTransmit.Size = new System.Drawing.Size(1256, 164);
             grpTransmit.TabIndex = 1;
             grpTransmit.TabStop = false;
             grpTransmit.Text = "Truyền CAN";
@@ -190,7 +190,7 @@
             dtgDataBytes.MultiSelect = false;
             dtgDataBytes.Name = "dtgDataBytes";
             dtgDataBytes.RowHeadersWidth = 20;
-            dtgDataBytes.Size = new System.Drawing.Size(1222, 135);
+            dtgDataBytes.Size = new System.Drawing.Size(1242, 135);
             dtgDataBytes.TabIndex = 22;
             // 
             // grpReceive
@@ -203,7 +203,7 @@
             grpReceive.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             grpReceive.Name = "grpReceive";
             grpReceive.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            grpReceive.Size = new System.Drawing.Size(1236, 196);
+            grpReceive.Size = new System.Drawing.Size(1256, 196);
             grpReceive.TabIndex = 2;
             grpReceive.TabStop = false;
             grpReceive.Text = "Nhận CAN";
@@ -241,7 +241,7 @@
             lstCANMessages.Location = new System.Drawing.Point(12, 25);
             lstCANMessages.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             lstCANMessages.Name = "lstCANMessages";
-            lstCANMessages.Size = new System.Drawing.Size(1212, 130);
+            lstCANMessages.Size = new System.Drawing.Size(1232, 130);
             lstCANMessages.TabIndex = 0;
             // 
             // grpLog
@@ -255,7 +255,7 @@
             grpLog.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             grpLog.Name = "grpLog";
             grpLog.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            grpLog.Size = new System.Drawing.Size(1236, 265);
+            grpLog.Size = new System.Drawing.Size(1256, 265);
             grpLog.TabIndex = 3;
             grpLog.TabStop = false;
             grpLog.Text = "System Log";
@@ -282,7 +282,7 @@
             txtSystemLog.Name = "txtSystemLog";
             txtSystemLog.ReadOnly = true;
             txtSystemLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            txtSystemLog.Size = new System.Drawing.Size(1212, 155);
+            txtSystemLog.Size = new System.Drawing.Size(1232, 155);
             txtSystemLog.TabIndex = 2;
             // 
             // lblLogStatus
@@ -313,7 +313,7 @@
             statusStrip.Location = new System.Drawing.Point(0, 739);
             statusStrip.Name = "statusStrip";
             statusStrip.Padding = new System.Windows.Forms.Padding(1, 0, 16, 0);
-            statusStrip.Size = new System.Drawing.Size(1264, 22);
+            statusStrip.Size = new System.Drawing.Size(1284, 22);
             statusStrip.TabIndex = 4;
             statusStrip.Text = "statusStrip1";
             // 
@@ -333,14 +333,14 @@
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(1264, 761);
+            ClientSize = new System.Drawing.Size(1284, 761);
             Controls.Add(statusStrip);
             Controls.Add(grpLog);
             Controls.Add(grpReceive);
             Controls.Add(grpTransmit);
             Controls.Add(grpConnection);
             Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            MinimumSize = new System.Drawing.Size(1280, 800);
+            MinimumSize = new System.Drawing.Size(1000, 800);
             Name = "Form1";
             StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             Text = "STM32 CAN Monitor - UART Interface";
