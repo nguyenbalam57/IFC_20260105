@@ -38,7 +38,7 @@ namespace IFC.Serial
                 logWriter = new StreamWriter(currentLogFile, false, Encoding.UTF8);
 
                 // Ghi header
-                logWriter.WriteLine("Timestamp,CAN ID,DLC,Data,Type");
+                logWriter.WriteLine("Timestamp,Direction,CAN ID,DLC,Data");
                 logWriter.Flush();
 
                 IsLogging = true;

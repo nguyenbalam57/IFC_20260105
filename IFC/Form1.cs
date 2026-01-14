@@ -36,6 +36,9 @@ namespace IFC
         private Dictionary<uint, int> canIdListBoxIndexMap = new Dictionary<uint, int>();
         private bool isDisplayData = false;
 
+        // Ẩn / Hiển thị cột System Log
+        private bool isSystemLogVisible = false;
+
         public Form1()
         {
             InitializeComponent();
@@ -81,6 +84,10 @@ namespace IFC
 
             // Enable custom drawing cho ListBox (optional)
             InitializeListBoxDrawing();
+
+            // Cập nhật hiển thị System Log
+            UpdateSystemLogVisibility();
+
         }
 
         /// <summary>
@@ -257,7 +264,7 @@ namespace IFC
         private void updateDisplayButtonData()
         {
             // Cập nhật text button để hiển thị trạng thái
-            btnData.Text = isDisplayData ? "Single" : "List";
+            btnData.Text = isDisplayData ? "Đơn" : "Danh sách";
             btnData.BackColor = isDisplayData ? Color.LightBlue : SystemColors.Control;
         }
 
@@ -1726,6 +1733,57 @@ namespace IFC
         #endregion
         #endregion
 
+        #region Button System Log Hide/Show
+        // Thay đổi trạng thái hiển thị System Log
+        private void btnHideSystemLog_Click(object sender, EventArgs e)
+        {
+            isSystemLogVisible = !isSystemLogVisible;
+            UpdateSystemLogVisibility();
+        }
 
+        // Update hiển thị System Log
+        private void UpdateSystemLogVisibility()
+        {
+            if (isSystemLogVisible)
+            {
+                btnHideSystemLog.Text = "Hide";
+                grpLog.Visible = true;
+                tableLayoutPanel1.SetColumnSpan(grpReceive, 1);
+            }
+            else
+            {
+                btnHideSystemLog.Text = "Show";
+                grpLog.Visible = false;
+                tableLayoutPanel1.SetColumnSpan(grpReceive, 2);
+            }
+        }
+
+        #endregion
+
+        #region Send Message Log
+
+        // Gửi log tin nhắn
+        private async void btnSendMessageLog_Click(object sender, EventArgs e)
+        {
+            string message = txtMessageLog.Text.Trim();
+            if (!string.IsNullOrEmpty(message))
+            {
+                // Gửi tin nhắn qua Serial
+                bool success = await serialManager.SendMessageAsync(message);
+                
+                if(success)
+                {
+                    txtMessageLog.Clear();
+                }
+
+            }
+            else
+            {
+                MessageBox.Show("Vui lòng nhập tin nhắn!", "Warning",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        #endregion
     }
 }

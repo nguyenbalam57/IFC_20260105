@@ -399,6 +399,21 @@ namespace IFC.Models
             return SendCANMessageAsync(config).GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// Gửi message thô
+        /// qua serial port
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        public async Task<bool> SendMessageAsync(string message)
+        {
+            if(string.IsNullOrWhiteSpace(message))
+            {
+                return false;
+            }
+            return await SendCommandAsync(message);
+        }
+
         #endregion
 
         #region AUTOTX Commands
