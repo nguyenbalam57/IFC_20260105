@@ -327,7 +327,8 @@ namespace IFC.Models
         private void ParseAutoTxStatus(string data)
         {
             // Trigger event để UI xử lý
-            AutoTxStatusReceived?.Invoke(this, new AutoTxStatusEventArgs { RawData = data });
+            //AutoTxStatusReceived?.Invoke(this, new AutoTxStatusEventArgs { RawData = data });
+            LogMessageReceived?.Invoke(this, data.Substring(4));
         }
 
         #endregion
